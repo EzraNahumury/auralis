@@ -44,6 +44,30 @@ In a traditional Arisan, members contribute a fixed sum at regular intervals and
 
 > **Tagline:** *Gotong royong, dijamin AI dan blockchain.*
 
+### 1.1 Why Portaldot (and not just any Substrate chain)?
+
+Auralis is built **natively** for Portaldot — not ported, not bridged. Three Portaldot capabilities map directly onto the project's core mechanics:
+
+| Portaldot Capability | How Auralis Uses It |
+|----------------------|---------------------|
+| **Native ink! smart contracts** (`pallet-contracts`) | All six Auralis contracts (GroupRegistry, ArisanGroup, VotingEngine, ReputationRegistry, BadgeNFT, Treasury) are ink! 5.x — deployed and executed natively, with **POT** paying every gas fee. |
+| **DHSA — Dynamic Heterogeneous Sharding (256 shards)** | Each Arisan group can live in a logically isolated shard context; voting + reasoning load per group never contends with unrelated groups. |
+| **AI-driven contract optimization engine + federated learning runtime** | Auralis' AI agents are *first-class citizens* of the chain, not bolted-on oracles. Reasoning artifacts can be persisted with chain-aware provenance. |
+| **ZKP + quantum-resistant primitives** | Roadmap (Level 2) uses Portaldot's native ZKP for private withdrawal reasoning without leaving the chain's trust model. |
+
+### 1.2 Portaldot Chain Facts (used throughout this project)
+
+| Field | Value |
+|-------|-------|
+| Native gas token | **POT** |
+| Token decimals | `14` |
+| SS58 address prefix | `42` |
+| Mainnet RPC (WSS) | `wss://mainnet.portaldot.io` |
+| Local dev RPC | `ws://127.0.0.1:9944` |
+| Smart-contract framework | **ink!** (Rust, via `pallet-contracts`) |
+| Official SDK | **`substrate-interface`** (Python) — used by Auralis agents |
+| Consensus | LAO NPoS |
+
 ---
 
 ## 2. Problem & Solution
@@ -117,7 +141,7 @@ Auralis is designed to compete in **two** Portaldot hackathon tracks:
 flowchart TB
     subgraph Client["🌐 Client Layer"]
         WEB[Next.js Web App]
-        WALLET[Polkadot.js Wallet]
+        WALLET[Portaldot-compatible Wallet<br/>SS58 prefix 42]
     end
 
     subgraph AI["🤖 AI Agent Layer (Off-chain)"]
@@ -597,19 +621,23 @@ stateDiagram-v2
 
 | Layer | Technology | Reason |
 |-------|------------|--------|
-| **Blockchain** | Portaldot (Substrate) | Hackathon requirement; native ink! support |
+| **Blockchain** | **Portaldot** (Layer-0, DHSA sharded, LAO NPoS consensus) | Hackathon requirement; native ink! + AI-friendly runtime |
 | **Smart Contract** | ink! 5.x (Rust) | Type-safe, deterministic, gas-efficient |
-| **Gas Token** | POT | Required by hackathon |
-| **Frontend** | Next.js 15 + TypeScript | Mature React ecosystem |
-| **Wallet** | Polkadot.js Extension | Standard Substrate-compatible wallet |
-| **Chain Interaction** | `@polkadot/api`, `@polkadot/api-contract` | Official Polkadot/Substrate SDK |
-| **Off-chain Agents** | Node.js + LangChain / direct LLM SDK | Standard agent orchestration |
+| **Gas Token** | **POT** (14 decimals, SS58 prefix 42) | Mandatory native gas |
+| **Chain Endpoint** | `wss://mainnet.portaldot.io` (mainnet) · `ws://127.0.0.1:9944` (local) | Official Portaldot RPC |
+| **Off-chain Agents** | **Python 3.11 + `substrate-interface`** (official Portaldot SDK) | First-class Portaldot SDK; native ink! contract calls |
+| **Agent Framework** | LangChain (Python) + Anthropic SDK | Standard multi-agent orchestration |
 | **LLM Provider** | Claude (Anthropic) — pluggable | Reasoning quality; swap-friendly |
-| **Indexer** | SubSquid or custom Substrate event listener | Fast UX queries |
-| **Off-chain Storage** | IPFS (via web3.storage) | Cheap reasoning-log persistence |
+| **Frontend** | Next.js 15 + TypeScript | Mature React ecosystem |
+| **Frontend Chain Lib** | `@polkadot/api` + `@polkadot/api-contract` (Substrate-compatible, points at Portaldot WS) | Generic Substrate JS lib; works with any Substrate-based chain incl. Portaldot |
+| **Wallet** | Any Substrate-compatible wallet configured for Portaldot RPC (SS58=42) — e.g. Polkadot.js extension, Talisman, SubWallet — until an official Portaldot wallet is released | Compatible with Portaldot SS58 + POT |
+| **Indexer** | Custom event listener on `wss://mainnet.portaldot.io` using `substrate-interface.filter_events` | Native Portaldot event filtering |
+| **Off-chain Storage** | IPFS (via web3.storage) | Cheap reasoning-log persistence; only CID on-chain |
 | **Styling** | TailwindCSS + shadcn/ui | Rapid, modern UI |
-| **Testing** | `cargo test` (ink!) + Vitest (FE) | Standard tooling |
-| **Local Chain** | `substrate-contracts-node` | Local dev environment |
+| **Testing** | `cargo test` + `cargo contract test` (ink!) · `pytest` (agents) · Vitest (FE) | Standard tooling |
+| **Local Dev Chain** | `substrate-contracts-node` (matches Portaldot's pallet-contracts runtime) | Local-only iteration before deploying to Portaldot testnet/mainnet |
+
+> **Portaldot Native Deployment** (mandatory hackathon criterion): all six ink! contracts compiled with `cargo contract build --release` and deployed via `substrate-interface` against `wss://mainnet.portaldot.io`. POT is the gas token for every transaction. No bridge, no chain abstraction.
 
 ---
 
@@ -624,20 +652,23 @@ auralis/
 │   ├── reputation_registry/
 │   ├── badge_nft/
 │   └── treasury/
-├── agents/                     # Off-chain AI agents
-│   ├── orchestrator/           # Event listener + router
+├── agents/                     # Off-chain AI agents (Python, substrate-interface)
+│   ├── orchestrator/           # Event listener + agent router
 │   ├── requester_agent/        # Pre-validation logic
 │   ├── reviewer_agent/         # Per-member reviewer
-│   └── prompts/                # LLM prompt templates
-├── indexer/                    # SubSquid / event indexer
+│   ├── portaldot_client/       # substrate-interface wrapper for Portaldot
+│   ├── prompts/                # LLM prompt templates
+│   ├── pyproject.toml
+│   └── requirements.txt
+├── indexer/                    # Portaldot event indexer (Python)
 ├── web/                        # Next.js frontend
 │   ├── app/
 │   ├── components/
 │   ├── hooks/
-│   └── lib/
+│   └── lib/portaldot/          # @polkadot/api client pointed at Portaldot WS
 ├── scripts/                    # Deployment + dev tooling
-│   ├── deploy.ts
-│   └── seed_demo.ts
+│   ├── deploy_portaldot.py     # Deploys all ink! contracts to Portaldot via substrate-interface
+│   └── seed_demo.py
 ├── docs/                       # Architecture deep-dives, diagrams
 ├── requirements.md             # Hackathon spec
 └── README.md                   # This file
@@ -650,59 +681,89 @@ auralis/
 ### 13.1 Prerequisites
 
 - **Rust** ≥ 1.75 with `cargo-contract` ≥ 4.0
-- **Node.js** ≥ 20
-- **Polkadot.js Browser Extension**
-- **Local Substrate node:** `substrate-contracts-node` ≥ 0.38
+- **Python** ≥ 3.11 (for agents — uses official Portaldot SDK `substrate-interface`)
+- **Node.js** ≥ 20 (for Next.js frontend only)
+- **Substrate-compatible browser wallet** configured for Portaldot:
+  - RPC: `wss://mainnet.portaldot.io`
+  - SS58 prefix: `42`
+  - Decimals: `14`, symbol `POT`
+- **Local dev node:** `substrate-contracts-node` ≥ 0.38 (offline iteration before Portaldot deploy)
 - **POT** test tokens (faucet link in `docs/faucet.md`)
-- LLM API key (Anthropic) in `.env`
+- Anthropic API key in `.env`
 
 ### 13.2 Install
 
 ```bash
 # Clone
-git clone https://github.com/<your-org>/auralis.git
+git clone https://github.com/EzraNahumury/auralis.git
 cd auralis
 
-# Contracts
-cd contracts && cargo contract build --release
+# 1. Smart contracts (Rust / ink!)
+cd contracts && cargo contract build --release && cd ..
 
-# Agents
-cd ../agents && npm install
+# 2. AI agents (Python + Portaldot SDK)
+cd agents
+python -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+# requirements.txt pins: substrate-interface, anthropic, langchain, python-dotenv, ipfshttpclient
+cd ..
 
-# Frontend
-cd ../web && npm install
+# 3. Frontend
+cd web && npm install && cd ..
 ```
 
 ### 13.3 Run Locally
 
 ```bash
-# Terminal 1 — Local Portaldot node
+# Terminal 1 — Local dev node (matches Portaldot's pallet-contracts runtime)
 substrate-contracts-node --dev
 
-# Terminal 2 — Deploy contracts
-npm run deploy:local
+# Terminal 2 — Deploy ink! contracts via Portaldot SDK
+python scripts/deploy_portaldot.py --endpoint ws://127.0.0.1:9944
 
-# Terminal 3 — Agent orchestrator
-cd agents && npm run dev
+# Terminal 3 — Agent orchestrator (Python)
+cd agents && python -m orchestrator
 
 # Terminal 4 — Frontend
 cd web && npm run dev
 # → http://localhost:3000
 ```
 
-### 13.4 Environment Variables
+### 13.4 Deploy to Portaldot Mainnet
+
+```bash
+# Same script, swap endpoint to Portaldot's official RPC
+python scripts/deploy_portaldot.py \
+  --endpoint wss://mainnet.portaldot.io \
+  --suri "$DEPLOYER_SURI" \
+  --ss58 42
+```
+
+All transactions pay gas in **POT**.
+
+### 13.5 Environment Variables
 
 ```env
 # agents/.env
 ANTHROPIC_API_KEY=sk-ant-...
-NODE_WS_ENDPOINT=ws://127.0.0.1:9944
+PORTALDOT_WS_ENDPOINT=wss://mainnet.portaldot.io   # local: ws://127.0.0.1:9944
+PORTALDOT_SS58_PREFIX=42
+PORTALDOT_TOKEN_DECIMALS=14
+PORTALDOT_TOKEN_SYMBOL=POT
+DEPLOYER_SURI=//Alice                              # replace for mainnet
 IPFS_GATEWAY=https://w3s.link
-CONTRACT_GROUP_REGISTRY=0x...
-CONTRACT_REPUTATION=0x...
+CONTRACT_GROUP_REGISTRY=5F...
+CONTRACT_ARISAN_GROUP=5F...
+CONTRACT_VOTING_ENGINE=5F...
+CONTRACT_REPUTATION=5F...
+CONTRACT_BADGE_NFT=5F...
+CONTRACT_TREASURY=5F...
 
 # web/.env.local
-NEXT_PUBLIC_WS_ENDPOINT=ws://127.0.0.1:9944
-NEXT_PUBLIC_GROUP_REGISTRY=0x...
+NEXT_PUBLIC_PORTALDOT_WS=wss://mainnet.portaldot.io
+NEXT_PUBLIC_SS58_PREFIX=42
+NEXT_PUBLIC_GROUP_REGISTRY=5F...
 ```
 
 ---
@@ -796,11 +857,12 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 - **Project Owner:** Ezra Kristanto Nahumury — Full-stack & smart contract dev
 - **Stack credits:**
-  - [Portaldot](https://portaldot-dev.readthedocs.io/) for the chain
-  - [ink!](https://use.ink/) for the smart contract framework
-  - [Polkadot.js](https://polkadot.js.org/) for the wallet & API
-  - [SubSquid](https://subsquid.io/) for indexing
-  - [Anthropic Claude](https://www.anthropic.com/) for LLM reasoning
+  - [Portaldot](https://portaldot-dev.readthedocs.io/) — Layer-0 host chain, native runtime, POT gas token
+  - [Portaldot Python SDK (`substrate-interface`)](https://portaldot-dev.readthedocs.io/en/latest/python-sdk/Install.html) — official agent/deploy SDK
+  - [ink!](https://use.ink/) — smart-contract framework
+  - [Anthropic Claude](https://www.anthropic.com/) — LLM reasoning
+  - [LangChain](https://www.langchain.com/) — agent orchestration
+  - [IPFS / web3.storage](https://web3.storage/) — reasoning-log persistence
 
 ---
 
