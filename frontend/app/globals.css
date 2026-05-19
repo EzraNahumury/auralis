@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #07080f;
+  --color-surface: #0d0f18;
+  --color-surface-2: #141725;
+  --color-surface-3: #1b1f31;
+
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  --color-fg: #ecedf5;
+  --color-fg-muted: #9498ad;
+  --color-fg-dim: #5d6076;
+
+  --color-violet: #7c6cff;
+  --color-violet-soft: #a89aff;
+  --color-violet-deep: #4b3ed1;
+
+  --color-emerald: #16d9a8;
+  --color-emerald-soft: #6cf2cc;
+
+  --color-cyan: #5cd8ff;
+  --color-amber: #ffc46b;
+  --color-rose: #ff7a90;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-card: 1.25rem;
+
+  --shadow-glow-violet: 0 0 0 1px rgba(124, 108, 255, 0.18), 0 18px 60px -20px rgba(124, 108, 255, 0.45);
+  --shadow-glow-emerald: 0 0 0 1px rgba(22, 217, 168, 0.2), 0 18px 60px -20px rgba(22, 217, 168, 0.4);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(124, 108, 255, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 85% 0%, rgba(22, 217, 168, 0.08), transparent 55%),
+    radial-gradient(700px 700px at 50% 110%, rgba(92, 216, 255, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(124, 108, 255, 0.35);
+  color: #ffffff;
+}
+
+/* Subtle noise overlay class — applied to <body> via a fixed div in layout */
+.bg-noise {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.4'/></svg>");
+}
+
+/* Utility: dotted grid background */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+}
+
+/* Conic gradient ring for badges */
+.ring-conic {
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    rgba(124, 108, 255, 0.6) 0deg,
+    rgba(22, 217, 168, 0.6) 120deg,
+    rgba(92, 216, 255, 0.6) 240deg,
+    rgba(124, 108, 255, 0.6) 360deg
+  );
+}
+
+/* Hide scrollbars on horizontally scrolled chips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* GSAP initial states — keeps SSR from flashing visible content before animation */
+[data-anim="fade-up"] {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  will-change: opacity, transform;
+}
+[data-anim="fade"] {
+  opacity: 0;
+  will-change: opacity;
+}
+[data-anim="scale-in"] {
+  opacity: 0;
+  transform: scale(0.96);
+  will-change: opacity, transform;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-anim] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Headline tracking */
+.display {
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
