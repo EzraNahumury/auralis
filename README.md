@@ -26,13 +26,14 @@
 10. [Data Model](#10-data-model)
 11. [Technical Stack](#11-technical-stack)
 12. [Project Structure](#12-project-structure)
-13. [Getting Started](#13-getting-started)
-14. [Demo Scenario](#14-demo-scenario)
-15. [Roadmap](#15-roadmap)
-16. [Risks & Mitigation](#16-risks--mitigation)
-17. [Success Criteria](#17-success-criteria)
-18. [Team & Credits](#18-team--credits)
-19. [License](#19-license)
+13. [Backend Implementation Spec](#13-backend-implementation-spec)
+14. [Getting Started](#14-getting-started)
+15. [Demo Scenario](#15-demo-scenario)
+16. [Roadmap](#16-roadmap)
+17. [Risks & Mitigation](#17-risks--mitigation)
+18. [Success Criteria](#18-success-criteria)
+19. [Team & Credits](#19-team--credits)
+20. [License](#20-license)
 
 ---
 
@@ -645,29 +646,30 @@ stateDiagram-v2
 
 ```
 auralis/
-├── contracts/                  # ink! smart contracts (Rust)
+├── contracts/                  # ink! smart contracts (Rust) — 7 contracts, all built
 │   ├── group_registry/
 │   ├── arisan_group/
 │   ├── voting_engine/
 │   ├── reputation_registry/
 │   ├── badge_nft/
-│   └── treasury/
-├── agents/                     # Off-chain AI agents (Python, substrate-interface)
-│   ├── orchestrator/           # Event listener + agent router
-│   ├── requester_agent/        # Pre-validation logic
-│   ├── reviewer_agent/         # Per-member reviewer
+│   ├── treasury/
+│   ├── agent_registry/         # ← onchain agent↔user binding + voting policy
+│   └── rust-toolchain.toml     # Pinned to Rust 1.85 (cargo-contract 5.0.3 compatible)
+├── agents/                     # Off-chain AI agents (Python, substrate-interface) — TO BUILD
+│   ├── orchestrator/           # Event listener + agent router daemon
+│   ├── requester_agent/        # Pre-validation logic (shared system agent)
+│   ├── reviewer_agent/         # Per-member reviewer (one instance per voter)
 │   ├── portaldot_client/       # substrate-interface wrapper for Portaldot
-│   ├── prompts/                # LLM prompt templates
+│   ├── shared/                 # IPFS helpers, config, logging
 │   ├── pyproject.toml
 │   └── requirements.txt
-├── indexer/                    # Portaldot event indexer (Python)
-├── web/                        # Next.js frontend
+├── indexer/                    # Portaldot event indexer (Python) — TO BUILD
+├── frontend/                   # Next.js frontend (in progress separately)
 │   ├── app/
 │   ├── components/
-│   ├── hooks/
-│   └── lib/portaldot/          # @polkadot/api client pointed at Portaldot WS
-├── scripts/                    # Deployment + dev tooling
-│   ├── deploy_portaldot.py     # Deploys all ink! contracts to Portaldot via substrate-interface
+│   └── lib/
+├── scripts/                    # Deployment + dev tooling — TO BUILD
+│   ├── deploy_portaldot.py     # Deploys all 7 ink! contracts in dependency order
 │   └── seed_demo.py
 ├── docs/                       # Architecture deep-dives, diagrams
 ├── requirements.md             # Hackathon spec
@@ -676,9 +678,394 @@ auralis/
 
 ---
 
-## 13. Getting Started
+## 13. Backend Implementation Spec
 
-### 13.1 Prerequisites
+> **Audience:** the off-chain backend contributor.
+> **Scope:** everything under `agents/`, `indexer/`, and `scripts/`.
+> **NOT in scope:** `contracts/` (locked, all 7 contracts already built and deployed) and `frontend/` (owned by the frontend contributor).
+>
+> This section is detailed enough that you should be able to start coding without further clarification. If something is ambiguous, treat the contract source in `contracts/{name}/lib.rs` as the source of truth.
+
+### 13.1 What you're building
+
+A Python backend that bridges Portaldot's onchain events with off-chain LLM reasoning, then writes the LLM verdicts back onchain. Concretely:
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| **Orchestrator** | Daemon | Subscribes to chain events, routes them to agents, retries failed txs |
+| **Requester Agent** | Per-request function | Pre-validates a withdrawal request, produces a confidence score (0–10000 bps), writes verdict via `VotingEngine.submit_prevalidation` |
+| **Reviewer Agent** | Per-member function | Independent reasoning per group member, casts vote via `VotingEngine.cast_vote` using member's delegated agent key |
+| **Portaldot Client** | Shared library | Typed wrappers around `substrate-interface` for the 7 contracts |
+| **IPFS Helper** | Shared library | Upload reasoning text → return CID as `[u8; 32]` for onchain storage |
+| **Indexer** | Daemon | Stream events into Postgres for fast frontend reads |
+| **Deploy Script** | One-shot | Deploy 7 contracts in dependency order, wire addresses, populate `.env` |
+
+### 13.2 Onchain interfaces you'll call
+
+ABI JSON for each contract is generated at `contracts/{name}/target/ink/{name}.json` after `cargo contract build --release`. Feed these directly into `substrate-interface.ContractInstance`.
+
+**Messages BE writes to chain (TX):**
+
+| Contract | Message | Args | Signed by |
+|----------|---------|------|-----------|
+| `AgentRegistry` | `register_agent` | `(agent_key, policy: u8 enum, policy_cid: [u8;32])` | User wallet (frontend triggers; BE may generate the agent_key on user's behalf) |
+| `ArisanGroup` | `deposit` (payable) | `()` + POT transfer | User wallet (frontend) |
+| `ArisanGroup` | `request_withdrawal` | `(amount: Balance, reason_cid: [u8;32])` | User wallet (frontend) |
+| `ArisanGroup` | `execute` | `(req_id: u64)` | Anyone — orchestrator can auto-trigger after approval |
+| `VotingEngine` | `submit_prevalidation` | `(requester, arisan_group, confidence_bps: u32, reasoning_cid: [u8;32], total_voters: u32)` | **Requester Agent's account** (must be whitelisted via `add_whitelisted_prevalidator` — done at deploy time) |
+| `VotingEngine` | `cast_vote` | `(req_id: u64, approve: bool, reasoning_cid: [u8;32])` | **Reviewer Agent's signing key** (the `agent_key` registered in `AgentRegistry`) |
+| `VotingEngine` | `finalize` | `(req_id: u64)` | Anyone — orchestrator should auto-call when deadline reached OR (quorum met AND approval majority) |
+
+**Read-only queries BE makes:**
+
+| Contract | Query | Returns | Use case |
+|----------|-------|---------|----------|
+| `ArisanGroup` | `get_member(account)` | `Option<MemberInfo>` | Deposit history for reasoning |
+| `ArisanGroup` | `member_count()` | `u32` | Pass as `total_voters` arg |
+| `ArisanGroup` | `get_request(req_id)` | `Option<WithdrawalRequest>` | Status check |
+| `ArisanGroup` | `contribution_amount()` | `Balance` | Validation in frontend / dry-run |
+| `ReputationRegistry` | `get_stats(account)` | `Stats { score, deposits_made, on_time, votes_cast, ... }` | Composite signals for reasoning |
+| `ReputationRegistry` | `cross_group_lookup(account)` | `Stats` | Cross-group history check |
+| `ReputationRegistry` | `get_tier(account)` | `Tier { Bronze, Silver, Gold, Platinum }` | UI badges, anti-Sybil |
+| `AgentRegistry` | `policy_of(user)` | `Option<Policy>` | Pick the right reviewer prompt template |
+| `AgentRegistry` | `owner_of(agent_key)` | `Option<AccountId>` | Resolve a signing key → user (mostly used by VotingEngine itself, but useful for debugging) |
+| `BadgeNFT` | `total_of(account)` | `u32` | Profile screen |
+
+**Events to subscribe to:**
+
+| Contract | Event | Why |
+|----------|-------|-----|
+| `ArisanGroup` | `WithdrawalRequested(req_id, requester, amount, reason_cid, round)` | Trigger Requester Agent |
+| `ArisanGroup` | `DepositMade(member, amount, round, on_time)` | Optional: update reputation (separate from voting) |
+| `VotingEngine` | `PrevalidationSubmitted(req_id, requester, path, confidence_bps, cid)` | Trigger N Reviewer Agents IF `path != AutoRejected` |
+| `VotingEngine` | `VoteCast(req_id, voter, approve, weight, cid)` | Update queue, check if quorum hit |
+| `VotingEngine` | `VotingFinalized(req_id, approved, approve_weight, reject_weight)` | Optionally trigger `ArisanGroup.execute` if approved |
+| `AgentRegistry` | `AgentRegistered`, `PolicyUpdated`, `AgentRevoked` | Maintain in-memory agent table |
+
+### 13.3 Withdrawal Lifecycle — the critical path
+
+```
+[Event] ArisanGroup.WithdrawalRequested(req_id, requester, amount, reason_cid)
+    ↓
+Orchestrator picks up event from WS subscription
+    ↓
+Spawn Requester Agent:
+    1. Fetch reasoning text from IPFS using reason_cid
+    2. Read requester's onchain history:
+       - ArisanGroup.get_member(requester) → deposit history
+       - ReputationRegistry.get_stats(requester) → composite score
+       - ReputationRegistry.cross_group_lookup(requester) → cross-group rep
+    3. LLM call (Claude) with structured prompt → JSON verdict
+       { confidence: 0.87, verdict: "FAST_TRACK"|"PASS"|"REJECT",
+         reasoning: "...", flags: ["EMERGENCY_VERIFIED"] }
+    4. Upload reasoning text to IPFS → new CID
+    5. Submit tx:
+       VotingEngine.submit_prevalidation(
+           requester, arisan_group_addr,
+           confidence_bps = int(confidence * 10000),
+           reasoning_cid, total_voters = member_count
+       )
+    ↓
+[Event] VotingEngine.PrevalidationSubmitted(req_id, path, confidence_bps, cid)
+    ↓
+If path == FastTrack or Normal:
+    For each of N group members:
+        Spawn Reviewer Agent(member):
+            1. Read member's policy: AgentRegistry.policy_of(member)
+            2. Load prompt template per policy:
+               Conservative / TrustDefault / StrictEmergency / Custom (cid)
+            3. Read same context as Requester (history + reputation)
+            4. LLM call → approve | reject + reasoning
+            5. Upload reasoning to IPFS
+            6. Submit tx (signed by member's delegated agent_key):
+               VotingEngine.cast_vote(req_id, approve, reasoning_cid)
+    ↓
+[Events] N × VoteCast streaming in
+    ↓
+Orchestrator polls finalization conditions:
+    - Path::FastTrack: after 12h deadline without challenge → finalize
+    - Path::Normal: at 24h deadline OR (quorum 60% met AND approve > reject)
+    ↓
+Submit tx: VotingEngine.finalize(req_id) → triggers ArisanGroup.on_voting_finalized
+    ↓
+If approved: submit tx ArisanGroup.execute(req_id) → Treasury releases POT → requester wallet
+```
+
+### 13.4 Agent onboarding flow
+
+When a user first joins Auralis, the BE must help them register a Reviewer Agent:
+
+```
+User connects wallet on frontend → picks voting persona
+    ↓
+Frontend calls BE: POST /api/agent/prepare { user: AccountId, policy: "Conservative" }
+BE:
+    1. Generate fresh Sr25519 keypair (this becomes agent_key)
+    2. Store private key in vault / .env (MVP) keyed by user pubkey
+    3. Upload prompt template for chosen policy to IPFS → policy_cid
+    4. Return: { agent_key_pubkey, policy_cid } to frontend
+    ↓
+Frontend asks user wallet to sign tx:
+    AgentRegistry.register_agent(agent_key, policy_enum, policy_cid)
+    ↓
+[Event] AgentRegistered fires → BE indexes the binding
+```
+
+### 13.5 Required folder layout (must conform)
+
+```
+agents/
+├── orchestrator/
+│   ├── __init__.py
+│   ├── main.py                 # Entry: python -m agents.orchestrator
+│   ├── event_router.py         # Maps each event type → handler coroutine
+│   └── job_queue.py            # asyncio.Queue + retry wrapper
+├── requester_agent/
+│   ├── __init__.py
+│   ├── agent.py                # PreValidateAgent class
+│   ├── tools.py                # Onchain read tools (history, reputation)
+│   └── prompts.py              # System + user prompt templates
+├── reviewer_agent/
+│   ├── __init__.py
+│   ├── agent.py                # ReviewerAgent class
+│   ├── policies.py             # Conservative/TrustDefault/StrictEmergency selectors
+│   └── prompts.py
+├── portaldot_client/
+│   ├── __init__.py
+│   ├── client.py               # PortaldotClient(ws_url, ss58_prefix)
+│   ├── contracts.py            # Typed wrapper per contract
+│   └── tx.py                   # Sign + submit + dry-run cost estimator
+├── shared/
+│   ├── __init__.py
+│   ├── ipfs.py                 # upload_text(s) -> [u8;32] CID
+│   ├── config.py               # pydantic settings from .env
+│   └── logging.py              # structlog setup
+├── pyproject.toml
+├── requirements.txt
+└── .env.example
+
+indexer/
+├── __init__.py
+├── main.py                     # Entry: python -m indexer
+├── schema.sql                  # Postgres tables (see 13.8)
+└── requirements.txt
+
+scripts/
+├── deploy_portaldot.py         # See 13.6
+└── seed_demo.py                # Create 1 group + 5 members + 1 withdrawal for demo
+```
+
+### 13.6 Deploy script — contract dependency order
+
+`scripts/deploy_portaldot.py` must deploy in this exact order (contracts have cross-dependencies via constructor args):
+
+```python
+# 1. Contracts with no dependencies first
+agent_registry = deploy("agent_registry.contract", constructor_args={})
+group_registry = deploy("group_registry.contract", constructor_args={})
+
+# 2. BadgeNFT needs a minter — use placeholder (zero address), patch later
+badge_nft = deploy("badge_nft.contract", constructor_args={"minter": ZERO_ADDRESS})
+
+# 3. ReputationRegistry needs badge_nft addr
+reputation_registry = deploy("reputation_registry.contract",
+    constructor_args={"badge_nft": badge_nft.address})
+
+# 4. Patch BadgeNFT minter → reputation_registry
+call(badge_nft, "set_minter", new_minter=reputation_registry.address)
+
+# 5. VotingEngine needs reputation_registry + agent_registry
+voting_engine = deploy("voting_engine.contract",
+    constructor_args={
+        "reputation_registry": reputation_registry.address,
+        "agent_registry": agent_registry.address,
+    })
+
+# 6. Treasury needs voting_engine
+treasury = deploy("treasury.contract",
+    constructor_args={"voting_engine": voting_engine.address})
+
+# 7. Whitelist permissions
+call(voting_engine, "add_whitelisted_prevalidator",
+     addr=REQUESTER_AGENT_ACCOUNT)
+call(reputation_registry, "add_whitelisted_writer", writer=voting_engine.address)
+# (ArisanGroup instances are deployed dynamically per group via GroupRegistry,
+#  each one must also be whitelisted as a writer at the time of group creation.)
+
+# 8. Write addresses to agents/.env and frontend/.env.local
+write_env({
+    "CONTRACT_GROUP_REGISTRY": group_registry.address,
+    "CONTRACT_VOTING_ENGINE": voting_engine.address,
+    "CONTRACT_REPUTATION_REGISTRY": reputation_registry.address,
+    "CONTRACT_AGENT_REGISTRY": agent_registry.address,
+    "CONTRACT_TREASURY": treasury.address,
+    "CONTRACT_BADGE_NFT": badge_nft.address,
+})
+```
+
+### 13.7 Environment variables (`agents/.env.example`)
+
+```env
+# ── Chain ─────────────────────────────────────────
+PORTALDOT_WS_ENDPOINT=ws://127.0.0.1:9944         # dev; wss://mainnet.portaldot.io in prod
+PORTALDOT_SS58_PREFIX=42
+PORTALDOT_TOKEN_DECIMALS=14
+
+# ── Signing ───────────────────────────────────────
+REQUESTER_AGENT_SURI=//Alice                       # MVP only, rotate for prod
+DEPLOYER_SURI=//Alice
+
+# ── Contract addresses (populated by deploy script) ──
+CONTRACT_GROUP_REGISTRY=
+CONTRACT_VOTING_ENGINE=
+CONTRACT_REPUTATION_REGISTRY=
+CONTRACT_AGENT_REGISTRY=
+CONTRACT_TREASURY=
+CONTRACT_BADGE_NFT=
+
+# ── LLM ───────────────────────────────────────────
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-sonnet-4-6
+
+# ── IPFS ──────────────────────────────────────────
+WEB3_STORAGE_TOKEN=
+IPFS_GATEWAY=https://w3s.link
+
+# ── Indexer ───────────────────────────────────────
+DATABASE_URL=postgresql://localhost:5432/auralis
+INDEXER_HTTP_PORT=8081
+
+# ── Orchestrator ──────────────────────────────────
+ORCHESTRATOR_HTTP_PORT=8080
+LOG_LEVEL=INFO
+RETRY_MAX_ATTEMPTS=3
+```
+
+### 13.8 Indexer schema (`indexer/schema.sql`)
+
+Minimum tables needed by frontend:
+
+```sql
+CREATE TABLE groups (
+    group_id BIGINT PRIMARY KEY,
+    founder TEXT NOT NULL,
+    arisan_group_addr TEXT UNIQUE NOT NULL,
+    contribution_amount NUMERIC,
+    period_days INTEGER,
+    max_members INTEGER,
+    created_at TIMESTAMPTZ
+);
+
+CREATE TABLE members (
+    group_id BIGINT REFERENCES groups(group_id),
+    account TEXT NOT NULL,
+    joined_at TIMESTAMPTZ,
+    PRIMARY KEY (group_id, account)
+);
+
+CREATE TABLE deposits (
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGINT,
+    account TEXT,
+    amount NUMERIC,
+    round INTEGER,
+    on_time BOOLEAN,
+    block_height BIGINT,
+    timestamp TIMESTAMPTZ
+);
+
+CREATE TABLE withdrawal_requests (
+    req_id BIGINT,
+    group_id BIGINT,
+    requester TEXT,
+    amount NUMERIC,
+    reason_cid BYTEA,         -- 32 bytes
+    status TEXT,              -- 'pending' | 'fasttrack' | 'normal' | 'approved' | 'rejected' | 'executed'
+    confidence_bps INTEGER,
+    deadline_ms BIGINT,
+    PRIMARY KEY (group_id, req_id)
+);
+
+CREATE TABLE votes (
+    req_id BIGINT,
+    group_id BIGINT,
+    voter TEXT,
+    approve BOOLEAN,
+    weight INTEGER,
+    reasoning_cid BYTEA,
+    voted_at TIMESTAMPTZ,
+    PRIMARY KEY (group_id, req_id, voter)
+);
+
+CREATE TABLE badges (
+    badge_id BIGINT PRIMARY KEY,
+    owner TEXT,
+    badge_type INTEGER,
+    minted_at TIMESTAMPTZ
+);
+
+CREATE TABLE reputation_history (
+    id BIGSERIAL PRIMARY KEY,
+    account TEXT,
+    old_score INTEGER,
+    new_score INTEGER,
+    reason TEXT,
+    block_height BIGINT,
+    timestamp TIMESTAMPTZ
+);
+```
+
+### 13.9 Python dependencies (`requirements.txt` baseline)
+
+```
+substrate-interface>=1.7.0
+anthropic>=0.40.0
+langchain>=0.3.0
+langchain-anthropic>=0.2.0
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+psycopg2-binary>=2.9.0
+aiohttp>=3.10.0
+structlog>=24.1.0
+requests>=2.31.0
+```
+
+### 13.10 Definition of Done (acceptance criteria)
+
+End-to-end test against `substrate-contracts-node --dev` MUST pass:
+
+1. ✅ `python scripts/deploy_portaldot.py --endpoint ws://127.0.0.1:9944` deploys all 7 contracts, fills `agents/.env`
+2. ✅ `python -m agents.orchestrator` starts → logs "subscribed to N event topics"
+3. ✅ Sending `ArisanGroup.deposit()` from a member → orchestrator detects within 5s
+4. ✅ Sending `request_withdrawal(...)` → Requester Agent submits `submit_prevalidation` within 30s
+5. ✅ All `member_count` Reviewer Agents submit `cast_vote` within 60s
+6. ✅ Orchestrator calls `finalize` when finalization conditions are met
+7. ✅ If approved: `execute` runs → requester wallet balance increases by approved amount
+8. ✅ `BadgeMinted` event fires when reputation threshold is crossed (after ≥12 on-time deposits, etc.)
+9. ✅ Indexer's Postgres has rows in every table within 10s of corresponding event
+
+### 13.11 Out of scope (you do NOT do these)
+
+- ❌ Smart contract development (DONE; locked at commit `1210cf4` or later)
+- ❌ Frontend (owned by frontend contributor in `frontend/`)
+- ❌ HSM / Vault for agent keys (`.env` is fine for MVP — note this in security caveats)
+- ❌ Multi-chain support (Portaldot only)
+- ❌ Production-grade Subsquid indexer (a simple substrate-interface event listener + Postgres is enough)
+
+### 13.12 Reference
+
+- Contract sources (source of truth for ABI semantics): `contracts/{name}/lib.rs`
+- ABI metadata (consumable JSON): `contracts/{name}/target/ink/{name}.json`
+- Build pipeline: `contracts/rust-toolchain.toml` (Rust 1.85 pinned — do NOT change)
+- Portaldot Python SDK install: https://portaldot-dev.readthedocs.io/en/latest/python-sdk/Install.html
+- ink! docs (for understanding the contract calls): https://use.ink/
+- Anthropic SDK: https://docs.anthropic.com/
+
+---
+
+## 14. Getting Started
+
+### 14.1 Prerequisites
 
 - **Rust** ≥ 1.75 with `cargo-contract` ≥ 4.0
 - **Python** ≥ 3.11 (for agents — uses official Portaldot SDK `substrate-interface`)
@@ -691,7 +1078,7 @@ auralis/
 - **POT** test tokens (faucet link in `docs/faucet.md`)
 - Anthropic API key in `.env`
 
-### 13.2 Install
+### 14.2 Install
 
 ```bash
 # Clone
@@ -713,7 +1100,7 @@ cd ..
 cd web && npm install && cd ..
 ```
 
-### 13.3 Run Locally
+### 14.3 Run Locally
 
 ```bash
 # Terminal 1 — Local dev node (matches Portaldot's pallet-contracts runtime)
@@ -730,7 +1117,7 @@ cd web && npm run dev
 # → http://localhost:3000
 ```
 
-### 13.4 Deploy to Portaldot Mainnet
+### 14.4 Deploy to Portaldot Mainnet
 
 ```bash
 # Same script, swap endpoint to Portaldot's official RPC
@@ -742,7 +1129,7 @@ python scripts/deploy_portaldot.py \
 
 All transactions pay gas in **POT**.
 
-### 13.5 Environment Variables
+### 14.5 Environment Variables
 
 ```env
 # agents/.env
@@ -768,7 +1155,7 @@ NEXT_PUBLIC_GROUP_REGISTRY=5F...
 
 ---
 
-## 14. Demo Scenario
+## 15. Demo Scenario
 
 The submitted demo video walks through the following **happy-path + edge-case** flow:
 
@@ -802,7 +1189,7 @@ The submitted demo video walks through the following **happy-path + edge-case** 
 
 ---
 
-## 15. Roadmap
+## 16. Roadmap
 
 ```mermaid
 gantt
@@ -824,7 +1211,7 @@ gantt
 
 ---
 
-## 16. Risks & Mitigation
+## 17. Risks & Mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -838,7 +1225,7 @@ gantt
 
 ---
 
-## 17. Success Criteria
+## 18. Success Criteria
 
 Aligned with the official Portaldot hackathon judging criteria:
 
@@ -853,7 +1240,7 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 ---
 
-## 18. Team & Credits
+## 19. Team & Credits
 
 - **Project Owner:** Ezra Kristanto Nahumury — Full-stack & smart contract dev
 - **Stack credits:**
@@ -866,7 +1253,7 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 ---
 
-## 19. License
+## 20. License
 
 Core smart contracts are released under the **MIT License** — see [LICENSE](LICENSE).
 Off-chain agents, frontend, and tooling are dual-licensed MIT/Apache-2.0.
