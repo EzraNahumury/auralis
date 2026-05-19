@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.env
+tx-proof.json
+*.log
+.DS_Store

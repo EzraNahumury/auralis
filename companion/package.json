@@ -1,0 +1,25 @@
+{
+  "name": "auralis-companion",
+  "version": "0.1.0",
+  "description": "Native-pallet Arisan flow demo for Auralis — live on-chain coordination via pallet-balances + pallet-multisig while ink! contract deployment is blocked by Portaldot Contracts API v5.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "verify": "tsx src/verify.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@polkadot/api": "^15.5.1",
+    "@polkadot/keyring": "^13.2.3",
+    "@polkadot/util": "^13.2.3",
+    "@polkadot/util-crypto": "^13.2.3",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

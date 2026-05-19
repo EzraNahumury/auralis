@@ -12,6 +12,19 @@
 
 ---
 
+> ## 🚨 Current Deployment Status (May 2026)
+>
+> Portaldot's Contracts API is currently v5, which **only supports ink! 3.x**. Our full architecture is ink! 5.x and cannot deploy to any current Portaldot node (per [Discord admin LevelMax + Quabnation](https://discord.gg/portaldot), 18 May 2026 — confirmed both local `portaldot_dev` and the community Railway node run the same binary with the same blocker).
+>
+> **Our submission therefore has two complementary deliverables:**
+>
+> 1. **Architectural deliverable** — 7 complete ink! 5.x contracts in [`contracts/`](./contracts/). Build clean to optimized WASM. Ready to deploy as soon as Portaldot ships Contracts API v9+. (Full design in Sections 5-13 below.)
+> 2. **Live on-chain deliverable** — a minimal Arisan flow in [`companion/`](./companion/) using native Portaldot pallets (`pallet-balances` + `pallet-multisig`). 5 transactions, deployable today on `portaldot_dev`. (See Section 14.)
+>
+> This hybrid satisfies the "Portaldot Native Deployment" criterion (live POT-fee transactions on Portaldot) while preserving the full ink! 5.x architecture we designed.
+
+---
+
 ## Table of Contents
 
 1. [Overview](#1-overview)
@@ -27,13 +40,14 @@
 11. [Technical Stack](#11-technical-stack)
 12. [Project Structure](#12-project-structure)
 13. [Backend Implementation Spec](#13-backend-implementation-spec)
-14. [Getting Started](#14-getting-started)
-15. [Demo Scenario](#15-demo-scenario)
-16. [Roadmap](#16-roadmap)
-17. [Risks & Mitigation](#17-risks--mitigation)
-18. [Success Criteria](#18-success-criteria)
-19. [Team & Credits](#19-team--credits)
-20. [License](#20-license)
+14. [Deployment Strategy & Companion Demo](#14-deployment-strategy--companion-demo)
+15. [Getting Started](#15-getting-started)
+16. [Demo Scenario](#16-demo-scenario)
+17. [Roadmap](#17-roadmap)
+18. [Risks & Mitigation](#18-risks--mitigation)
+19. [Success Criteria](#19-success-criteria)
+20. [Team & Credits](#20-team--credits)
+21. [License](#21-license)
 
 ---
 
@@ -663,12 +677,21 @@ auralis/
 │   ├── shared/                 # IPFS helpers, config, logging
 │   ├── pyproject.toml
 │   └── requirements.txt
-├── indexer/                    # Portaldot event indexer (Python) — TO BUILD
+├── indexer/                    # Portaldot event indexer (Python) — TO BUILD (lower priority, see §14.5)
 ├── frontend/                   # Next.js frontend (in progress separately)
 │   ├── app/
 │   ├── components/
 │   └── lib/
-├── scripts/                    # Deployment + dev tooling — TO BUILD
+├── companion/                  # ⭐ Native-pallet Arisan flow demo (TypeScript + @polkadot/api)
+│   ├── src/                    # Live on-chain proof-of-concept
+│   │   ├── index.ts            # 5-transaction Arisan flow
+│   │   ├── api.ts              # Connect to Portaldot WS
+│   │   ├── multisig.ts         # Threshold-account helpers
+│   │   ├── verify.ts           # Replay verification for judges
+│   │   └── types.ts
+│   ├── package.json
+│   └── README.md               # How to run the companion demo
+├── scripts/                    # Deployment + dev tooling — TO BUILD (lower priority, see §14.5)
 │   ├── deploy_portaldot.py     # Deploys all 7 ink! contracts in dependency order
 │   └── seed_demo.py
 ├── docs/                       # Architecture deep-dives, diagrams
@@ -1063,9 +1086,137 @@ End-to-end test against `substrate-contracts-node --dev` MUST pass:
 
 ---
 
-## 14. Getting Started
+## 14. Deployment Strategy & Companion Demo
 
-### 14.1 Prerequisites
+> **Audience:** anyone building, demoing, or judging this project.
+> **TL;DR:** Our 7 ink! 5.x contracts cannot deploy to current Portaldot binary (Contracts API v5, only supports ink! 3.x). For live on-chain demonstration we use native pallets via `companion/`. The full ink! architecture deploys as-is once Portaldot upgrades to Contracts API v9+.
+
+### 14.1 The Contracts API v5 blocker (admin-confirmed)
+
+Per the Portaldot Discord (18 May 2026), all current Portaldot binaries — both local `portaldot_dev` and the community-hosted Railway node — run the same outdated `pallet-contracts`:
+
+> **@LevelMax (admin):** "specVersion: 1002, Contract API: version 5. Same result as your local node. **Both run the same binary — the public node doesn't help in this case.**"
+>
+> **@Quabnation (admin):** "❌ Local node — contracts API v5, ink! 4.x rejected at runtime · ❌ Public node — same binary, same result · ❌ ink! 3.x — currently broken on crates.io (toml_datetime dependency bug) · ✅ Native pallets via @polkadot/api — works perfectly, fully supported."
+>
+> **@LevelMax (admin):** "There is no workaround on the client side. The team needs to ship an updated node binary with contracts API v9+." — *No timeline given.*
+
+So we have a Catch-22:
+
+| Strategy | Build OK? | Portaldot runtime accepts? |
+|----------|:---------:|:---------------------------:|
+| ink! **5.x** (our current architecture) | ✅ | ❌ (rejected — needs API v9+) |
+| ink! **4.x** | ✅ | ❌ (rejected — needs API v9+) |
+| ink! **3.x** (only one Portaldot would accept) | ❌ (crates.io broken) | (✅) |
+
+**Conclusion:** zero ink! versions can be deployed to Portaldot today. The block is at runtime/infrastructure level, not on our side.
+
+### 14.2 Our two-track response
+
+**Track 1 — Architectural (full vision):** [`contracts/`](./contracts/) holds 7 complete ink! 5.x contracts representing the full Auralis design (GroupRegistry, ArisanGroup, VotingEngine, ReputationRegistry, BadgeNFT, Treasury, AgentRegistry). All build to optimized WASM (9-16 KB each). All carry unit tests. They will deploy as-is when Portaldot ships Contracts API v9+.
+
+**Track 2 — Live on-chain (today):** [`companion/`](./companion/) holds a minimal Arisan flow implemented with **native Portaldot pallets**, which work on the current Contracts API v5 chain:
+
+```
+Alice    (100 POT) ──┐
+Bob      (100 POT) ──┼─→ shared 2-of-3 multisig account
+Charlie  (100 POT) ──┘            │
+                                  ▼
+              Alice proposes withdrawal of 300 POT → Dave
+              Bob approves → quorum hit → multisig auto-executes
+                                  │
+                                  ▼
+                            Dave receives 300 POT
+```
+
+5 transactions, all using `pallet-balances` and `pallet-multisig`, all POT-fee-paid on Portaldot. **This is our on-chain "Portaldot Native Deployment" evidence** per [Quabnation's submission guidance](https://discord.gg/portaldot) (14 May 2026):
+
+> "For proof just include a transaction hash from your local node in your README. That is your native deployment evidence."
+
+### 14.3 Running the companion demo
+
+```bash
+cd companion
+npm install
+cp .env.example .env       # edit endpoint / amounts if needed
+npm start
+```
+
+Outputs:
+- Console log of each of the 5 transactions (signer, tx hash, block number)
+- `companion/tx-proof.json` — machine-readable proof bundle for inclusion in submission
+
+Replayable verification by anyone:
+```bash
+npm run verify   # re-queries the chain by tx hash, confirms each tx is in history
+```
+
+See [`companion/README.md`](./companion/README.md) for full details.
+
+### 14.4 How companion maps to ink! contracts
+
+Each native-pallet call corresponds to a method we'd otherwise call on our ink! contracts:
+
+| companion (today, native pallets) | ink! contracts (`./contracts/`, ready for API v9+) |
+|-----------------------------------|----------------------------------------------------|
+| `pallet-balances.transferKeepAlive` (3×) | `ArisanGroup.deposit()` |
+| `pallet-multisig.approveAsMulti` (1st vote) | `VotingEngine.cast_vote()` (first signer) |
+| `pallet-multisig.asMulti` (2nd vote, auto-executes) | `VotingEngine.finalize()` + `ArisanGroup.execute()` + `Treasury.release()` |
+| Off-chain JSON / event log | `ReputationRegistry.update_score()` |
+| Not modeled in companion | `BadgeNFT.mint_badge()`, `AgentRegistry.register_agent()` |
+
+The companion is **deliberately minimal** — it proves the core money flow works on-chain. The full ink! suite adds: cross-group reputation, soulbound badge attestations, delegated agent identity, AI-driven pre-validation routing, time-bound voting windows, and reputation-weighted vote tallying — none of which are expressible via native pallets, all of which are implemented in `contracts/`.
+
+### 14.5 Implications for collaborators
+
+#### Frontend (FE) contributor — `frontend/`
+
+| Before pivot | After pivot |
+|--------------|-------------|
+| Use `@polkadot/api-contract` to call deployed ink! contracts | Use `@polkadot/api` directly to call native pallets |
+| 7 ABI JSON files needed | No ABIs needed for live demo |
+| Multi-contract wiring in env | Single Portaldot WS URL + multisig threshold config |
+
+**Action items for FE friend:**
+1. **Install** `@polkadot/api` and `@polkadot/util-crypto` in `frontend/`
+2. **Connection layer** — port `companion/src/api.ts` pattern into `frontend/lib/portaldot/`
+3. **Demo page** — add a button that triggers the same 5-transaction flow `companion/src/index.ts` executes. Show each tx hash + block number live as it confirms.
+4. **Default login** — `//Alice` (shared dev account, pre-funded). No wallet extension required for the simple demo path.
+5. **Optional polish** — Portaldot Extension wallet support for non-Alice users, real account creation flow, etc.
+
+**Do NOT spend time on:** `@polkadot/api-contract`, ABI parsing, contract-method discovery UI. None of these are reachable on Portaldot today.
+
+#### Backend (BE) contributor — `agents/`
+
+The full BE specification in [Section 13](#13-backend-implementation-spec) is **still the design target post-API-upgrade**, but for hackathon submission its priority drops because the contracts it would call are not deployable.
+
+**Recommended scope for hackathon submission:**
+
+1. **Off-chain LLM simulation (highest priority, 1-2 days)** — implement the Requester Agent and a single Reviewer Agent as Python scripts. Take a hard-coded "withdrawal request" payload, run the LLM, output the JSON verdict. Save reasoning logs as demo artifacts. This proves the AI reasoning component works without needing on-chain hooks.
+
+2. **(Optional) Native-pallet integration** — port `companion/src/index.ts` to Python using `substrate-interface`. Same flow, same tx hashes. Useful only if your demo narrative needs "BE-triggered transactions" rather than user-triggered ones.
+
+**Do NOT spend time on:** event subscription daemons, indexer, deploy script for ink! contracts — all blocked by the contract deployment issue. Document them as "post-API-upgrade Phase 2" in your part of the README.
+
+#### Smart contract (SC) work — FROZEN
+
+The 7 ink! 5.x contracts in `contracts/` are submission-ready. No further refactor or build work is needed. They will deploy unchanged when Portaldot Contracts API upgrades to v9+. The `contracts/README.md` documents architecture, build pipeline, dependency order, and ABI handoff.
+
+### 14.6 Submission proof checklist
+
+When `companion/tx-proof.json` is committed to the repo after running the demo, the submission deliverables are:
+
+- ✅ 5 transaction hashes (proof of Portaldot Native Deployment)
+- ✅ 7 ink! 5.x contracts buildable to WASM (architectural completeness)
+- ✅ Working frontend that triggers companion flow (demo-able)
+- ✅ Documented design (this README + `contracts/README.md` + `companion/README.md`)
+- ✅ Demo video showing the live flow + walkthrough of the full ink! design
+
+---
+
+## 15. Getting Started
+
+### 15.1 Prerequisites
 
 - **Rust** ≥ 1.75 with `cargo-contract` ≥ 4.0
 - **Python** ≥ 3.11 (for agents — uses official Portaldot SDK `substrate-interface`)
@@ -1078,7 +1229,7 @@ End-to-end test against `substrate-contracts-node --dev` MUST pass:
 - **POT** test tokens (faucet link in `docs/faucet.md`)
 - Anthropic API key in `.env`
 
-### 14.2 Install
+### 15.2 Install
 
 ```bash
 # Clone
@@ -1100,7 +1251,7 @@ cd ..
 cd web && npm install && cd ..
 ```
 
-### 14.3 Run Locally
+### 15.3 Run Locally
 
 ```bash
 # Terminal 1 — Local dev node (matches Portaldot's pallet-contracts runtime)
@@ -1117,7 +1268,7 @@ cd web && npm run dev
 # → http://localhost:3000
 ```
 
-### 14.4 Deploy to Portaldot Mainnet
+### 15.4 Deploy to Portaldot Mainnet
 
 ```bash
 # Same script, swap endpoint to Portaldot's official RPC
@@ -1129,7 +1280,7 @@ python scripts/deploy_portaldot.py \
 
 All transactions pay gas in **POT**.
 
-### 14.5 Environment Variables
+### 15.5 Environment Variables
 
 ```env
 # agents/.env
@@ -1155,7 +1306,7 @@ NEXT_PUBLIC_GROUP_REGISTRY=5F...
 
 ---
 
-## 15. Demo Scenario
+## 16. Demo Scenario
 
 The submitted demo video walks through the following **happy-path + edge-case** flow:
 
@@ -1189,7 +1340,7 @@ The submitted demo video walks through the following **happy-path + edge-case** 
 
 ---
 
-## 16. Roadmap
+## 17. Roadmap
 
 ```mermaid
 gantt
@@ -1211,7 +1362,7 @@ gantt
 
 ---
 
-## 17. Risks & Mitigation
+## 18. Risks & Mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -1225,7 +1376,7 @@ gantt
 
 ---
 
-## 18. Success Criteria
+## 19. Success Criteria
 
 Aligned with the official Portaldot hackathon judging criteria:
 
@@ -1240,7 +1391,7 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 ---
 
-## 19. Team & Credits
+## 20. Team & Credits
 
 - **Project Owner:** Ezra Kristanto Nahumury — Full-stack & smart contract dev
 - **Stack credits:**
@@ -1253,7 +1404,7 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 ---
 
-## 20. License
+## 21. License
 
 Core smart contracts are released under the **MIT License** — see [LICENSE](LICENSE).
 Off-chain agents, frontend, and tooling are dual-licensed MIT/Apache-2.0.
