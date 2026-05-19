@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, X } from "lucide-react";
+import Link from "next/link";
+import { Menu, X, ArrowUpRight } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import { gsap, registerGsap } from "@/lib/gsap";
 import { nav } from "@/lib/content";
@@ -58,85 +59,110 @@ export function Navbar() {
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-x-0 top-5 z-50 flex justify-center px-4"
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 transition-colors duration-500",
+        scrolled
+          ? "border-b border-border-strong/60 bg-bg/65 backdrop-blur-xl"
+          : "border-b border-transparent bg-transparent"
+      )}
     >
-      <div
-        className={cn(
-          "w-full max-w-[1300px] rounded-full transition-all duration-500",
-          scrolled
-            ? "border border-border-strong bg-surface/80 backdrop-blur-xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.6)]"
-            : "border border-transparent bg-transparent backdrop-blur-0"
-        )}
-      >
-        <div className="flex items-center justify-between gap-6 px-3 py-2 sm:px-4">
-          <a
-            href="#top"
-            className="nav-item flex items-center gap-2.5 pl-2 text-sm font-semibold tracking-tight"
-          >
-            <span
-              aria-hidden
-              className="grid size-7 place-items-center rounded-full ring-conic"
+      <div className="relative mx-auto flex h-16 max-w-[1400px] items-center px-4 sm:h-20 sm:px-8">
+        {/* Left — primary links */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {nav.links.slice(0, 3).map((l, i) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="nav-item rounded-full px-3 py-1.5 text-[12px] uppercase tracking-[0.16em] text-fg-muted transition-colors hover:text-fg"
             >
-              <span className="size-5 rounded-full bg-bg" />
-            </span>
-            <span>{nav.brand}</span>
-          </a>
+              {i === 1 ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-fg-dim">▸</span>
+                  {l.label}
+                </span>
+              ) : (
+                l.label
+              )}
+            </a>
+          ))}
+          {nav.links.slice(3).map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="nav-item rounded-full px-3 py-1.5 text-[12px] uppercase tracking-[0.16em] text-fg-muted transition-colors hover:text-fg"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
 
-          <nav className="hidden items-center gap-1 md:flex">
+        {/* Centered brand */}
+        <Link
+          href="#top"
+          className="nav-item absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 text-sm font-semibold tracking-tight"
+        >
+          <span
+            aria-hidden
+            className="grid size-7 place-items-center rounded-full ring-conic"
+          >
+            <span className="size-5 rounded-full bg-bg" />
+          </span>
+          <span className="hidden sm:inline">{nav.brand}</span>
+        </Link>
+
+        {/* Right — CTA pill */}
+        <div className="ml-auto hidden md:block">
+          <span className="nav-item inline-block">
+            <Link
+              href={nav.cta.href}
+              className="group inline-flex items-center gap-2.5 rounded-full px-5 py-2 text-sm font-medium text-white shadow-[0_-4px_7px_rgba(50,50,50,0.32)_inset] transition-transform hover:-translate-y-[1px]"
+              style={{ background: "var(--gradient-brand)" }}
+            >
+              <span>{nav.cta.label}</span>
+              <span
+                aria-hidden
+                className="grid size-6 place-items-center rounded-full bg-white/15"
+              >
+                <ArrowUpRight className="size-3.5" />
+              </span>
+            </Link>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          aria-label="Toggle menu"
+          onClick={() => setOpen((v) => !v)}
+          className="ml-auto grid size-9 place-items-center rounded-full border border-border-strong bg-white/[0.04] text-fg md:hidden"
+        >
+          {open ? <X className="size-4" /> : <Menu className="size-4" />}
+        </button>
+      </div>
+
+      {open && (
+        <div
+          ref={mobilePanelRef}
+          className="border-t border-border bg-bg/95 px-4 pb-5 pt-3 backdrop-blur-xl md:hidden"
+        >
+          <div className="flex flex-col gap-1">
             {nav.links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="nav-item rounded-full px-3.5 py-1.5 text-[13px] uppercase tracking-[0.1em] text-fg-muted transition-colors hover:text-fg"
+                onClick={() => setOpen(false)}
+                className="m-link rounded-2xl px-4 py-3 text-sm uppercase tracking-wider text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg"
               >
                 {l.label}
               </a>
             ))}
-          </nav>
-
-          <div className="hidden md:block">
-            <span className="nav-item inline-block">
+            <div className="m-link mt-2 flex justify-center">
               <Button href={nav.cta.href} variant="primary" withArrow>
                 {nav.cta.label}
               </Button>
-            </span>
-          </div>
-
-          <button
-            type="button"
-            aria-label="Toggle menu"
-            onClick={() => setOpen((v) => !v)}
-            className="grid size-9 place-items-center rounded-full border border-border-strong bg-white/[0.04] text-fg md:hidden"
-          >
-            {open ? <X className="size-4" /> : <Menu className="size-4" />}
-          </button>
-        </div>
-
-        {open && (
-          <div
-            ref={mobilePanelRef}
-            className="border-t border-border px-4 pb-4 pt-2 md:hidden"
-          >
-            <div className="flex flex-col gap-1">
-              {nav.links.map((l) => (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="m-link rounded-2xl px-4 py-3 text-sm uppercase tracking-wider text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg"
-                >
-                  {l.label}
-                </a>
-              ))}
-              <div className="m-link mt-2 flex justify-center">
-                <Button href={nav.cta.href} variant="primary" withArrow>
-                  {nav.cta.label}
-                </Button>
-              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

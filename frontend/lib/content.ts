@@ -23,6 +23,59 @@ export const hero = {
     { value: "6", label: "ink! contracts" },
     { value: "256", label: "Portaldot shards" },
   ],
+  // FIVA-style hero composition
+  headline: [
+    [
+      { text: "First", tone: "muted" },
+      { text: "AI-Governed", tone: "strong" },
+      { text: "Arisan", tone: "muted" },
+    ],
+    [{ text: "Protocol on Portaldot.", tone: "strong" }],
+    [
+      { text: "Experience", tone: "muted" },
+      { text: "trusted coordination", tone: "strong" },
+    ],
+    [{ text: "with Auralis.", tone: "strong" }],
+  ] as const,
+  description:
+    "Auralis brings AI-governed coordination to Indonesia's rotating savings, letting members manage Arisan with more transparency, portable reputation, and onchain verification.",
+  openApp: { label: "Open app", href: "/app" },
+};
+
+export const whatYouCanDo = {
+  title: "What you can do with Auralis",
+  cards: [
+    {
+      name: "Stay on track",
+      body: "Every deposit lands onchain and is scored as it arrives. Consistency compounds — reputation rewards 12 on-time rounds with a Consistent Payer badge.",
+    },
+    {
+      name: "Build reputation",
+      body: "A single score from 0 to 1000 follows you across every Auralis group on Portaldot. Climb tiers; your vote weight scales with you.",
+    },
+    {
+      name: "Mint soulbound badges",
+      body: "Behavior mints non-transferable NFTs: Consistent Payer, Trusted Member, Cross-Group Veteran, Dispute-Free. Portable across the ecosystem.",
+    },
+  ],
+};
+
+export const howAuralis = {
+  title: "How Auralis Works",
+  cards: [
+    {
+      index: "01",
+      name: "Multi-Agent Reasoning",
+      body:
+        "Auralis routes every withdrawal request through a Requester Agent for pre-validation, then N Reviewer Agents — one per member — each reasoning independently against their own policy before casting a weighted vote onchain.",
+    },
+    {
+      index: "02",
+      name: "Portable Reputation",
+      body:
+        "A score from 0 to 1000 follows each member across every Auralis group on Portaldot. Soulbound badges attest behavior; tier (Bronze → Platinum) multiplies voting weight. A defaulter does not get a clean slate.",
+    },
+  ],
 };
 
 export const problems = [

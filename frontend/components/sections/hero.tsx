@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef } from "react";
+import { ArrowUpRight, Plus } from "lucide-react";
+import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import { gsap, registerGsap } from "@/lib/gsap";
 import { hero } from "@/lib/content";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { HeroPreview } from "./hero-preview";
+import { cn } from "@/lib/cn";
+import { Entropy } from "../ui/entropy";
 
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null);
@@ -19,65 +20,28 @@ export function Hero() {
       });
 
       tl.fromTo(
-        ".hero-eyebrow",
-        { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.7 }
+        ".hero-word",
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, stagger: 0.04, duration: 0.9 }
       )
         .fromTo(
-          ".hero-line",
-          { opacity: 0, y: 60 },
-          { opacity: 1, y: 0, stagger: 0.08, duration: 1.1 },
-          "-=0.3"
+          ".hero-desc",
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.7 },
+          "-=0.5"
         )
         .fromTo(
-          ".hero-sub",
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.8 },
-          "-=0.6"
-        )
-        .fromTo(
-          ".hero-cta",
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, stagger: 0.08, duration: 0.6 },
-          "-=0.4"
-        )
-        .fromTo(
-          ".hero-stat",
+          ".hero-cta-row",
           { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, stagger: 0.06, duration: 0.5 },
-          "-=0.3"
+          { opacity: 1, y: 0, duration: 0.6 },
+          "-=0.45"
         )
         .fromTo(
-          ".hero-preview",
-          { opacity: 0, y: 50, scale: 0.97 },
-          { opacity: 1, y: 0, scale: 1, duration: 1.2 },
-          "-=0.7"
+          ".hero-field",
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 1.4, ease: "expo.out" },
+          "-=0.8"
         );
-
-      gsap.to(".hero-preview", {
-        y: -10,
-        duration: 4,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-
-      gsap.to(".hero-orb-a", {
-        x: 40,
-        y: -30,
-        duration: 9,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-      gsap.to(".hero-orb-b", {
-        x: -50,
-        y: 20,
-        duration: 11,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
     },
     { scope: ref }
   );
@@ -86,84 +50,86 @@ export function Hero() {
     <section
       id="top"
       ref={ref}
-      className="relative isolate overflow-hidden pt-32 pb-24 sm:pt-44 sm:pb-32"
+      className="relative isolate overflow-hidden pt-28 pb-20 sm:pt-32 sm:pb-24 lg:min-h-[880px] lg:pt-36"
     >
-      {/* Decorative orbs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="hero-orb-a absolute -top-40 left-1/4 size-[640px] rounded-full bg-violet/20 blur-[160px]" />
-        <div className="hero-orb-b absolute top-32 right-1/4 size-[520px] rounded-full bg-indigo/15 blur-[160px]" />
-      </div>
-
       <div
         aria-hidden
-        className="absolute inset-0 bg-dot-grid opacity-[0.25]"
+        className="absolute inset-0 bg-dot-grid opacity-[0.18]"
         style={{
           maskImage:
-            "linear-gradient(to bottom, transparent, black 15%, black 80%, transparent)",
+            "linear-gradient(to bottom, transparent, black 18%, black 78%, transparent)",
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent, black 15%, black 80%, transparent)",
+            "linear-gradient(to bottom, transparent, black 18%, black 78%, transparent)",
         }}
       />
 
-      <div className="relative mx-auto max-w-[1300px] px-6 lg:px-10">
-        <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <div className="hero-eyebrow inline-block">
-              <Badge tone="violet">{hero.badge}</Badge>
-            </div>
+      <div className="relative mx-auto flex max-w-[1400px] flex-col gap-12 px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_540px] lg:items-center lg:gap-12 lg:px-10 xl:gap-20">
+        {/* Left — headline + description + CTA */}
+        <div className="relative z-10 max-w-[640px] lg:order-1 lg:max-w-[600px]">
+          <h1
+            className="text-[clamp(1.5rem,2.9vw,2.6rem)] font-normal leading-[1.15] tracking-[-0.01em]"
+            style={{ fontFamily: "var(--font-tech), ui-sans-serif, system-ui" }}
+          >
+            {hero.headline.map((line, li) => (
+              <span key={li} className="block overflow-hidden">
+                <span className="inline-block">
+                  {line.map((word, wi) => (
+                    <span
+                      key={wi}
+                      className={cn(
+                        "hero-word inline-block",
+                        word.tone === "muted" ? "text-fg-dim" : "text-fg",
+                        wi < line.length - 1 && "mr-[0.32em]"
+                      )}
+                    >
+                      {word.text}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            ))}
+          </h1>
 
-            <h1 className="display mt-7 text-fg">
-              <span className="block overflow-hidden">
-                <span className="hero-line block text-[clamp(2.8rem,8vw,7.5rem)] font-semibold">
-                  Gotong royong,
-                </span>
-              </span>
-              <span className="block overflow-hidden">
-                <span className="hero-line serif-display block text-[clamp(2.6rem,7.5vw,7rem)] text-gradient">
-                  now governed by
-                </span>
-              </span>
-              <span className="block overflow-hidden">
-                <span className="hero-line block text-[clamp(2.8rem,8vw,7.5rem)] font-semibold">
-                  AI on Portaldot.
-                </span>
-              </span>
-            </h1>
-
-            <p className="hero-sub mt-8 max-w-xl text-base leading-relaxed text-fg-muted sm:text-lg">
-              {hero.subtitle}
+          <div className="hero-desc mt-10 flex max-w-md items-start gap-3">
+            <span
+              aria-hidden
+              className="mt-[6px] grid size-5 place-items-center rounded-full border border-border-strong text-fg-dim"
+            >
+              <Plus className="size-3" />
+            </span>
+            <p className="text-sm leading-relaxed text-fg-muted sm:text-[15px]">
+              {hero.description}
             </p>
-
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <span className="hero-cta inline-block">
-                <Button href={hero.ctaPrimary.href} withArrow>
-                  {hero.ctaPrimary.label}
-                </Button>
-              </span>
-              <span className="hero-cta inline-block">
-                <Button href={hero.ctaSecondary.href} variant="secondary">
-                  {hero.ctaSecondary.label}
-                </Button>
-              </span>
-            </div>
-
-            <dl className="mt-14 grid max-w-xl grid-cols-2 gap-x-8 gap-y-5 border-t border-border pt-8 sm:grid-cols-4">
-              {hero.stats.map((s) => (
-                <div key={s.label} className="hero-stat flex flex-col gap-1.5">
-                  <dt className="display text-2xl font-semibold tracking-tight text-fg">
-                    {s.value}
-                  </dt>
-                  <dd className="text-[10px] uppercase tracking-[0.14em] text-fg-dim">
-                    {s.label}
-                  </dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
-          <div className="hero-preview relative">
-            <HeroPreview />
+          <div className="hero-cta-row mt-9">
+            <Link
+              href={hero.openApp.href}
+              className="group inline-flex items-center gap-3 rounded-full bg-white px-6 py-2.5 text-sm font-medium text-bg shadow-[0_-4px_7px_rgba(225,225,225,0.32)_inset] transition-colors hover:bg-[#fafafa]"
+            >
+              <span>{hero.openApp.label}</span>
+              <span
+                aria-hidden
+                className="grid size-7 place-items-center rounded-full"
+                style={{ background: "var(--gradient-brand)" }}
+              >
+                <ArrowUpRight className="size-3.5 text-white transition-transform duration-300 group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" />
+              </span>
+            </Link>
           </div>
+        </div>
+
+        {/* Right — Entropy particle field */}
+        <div className="hero-field relative mx-auto flex w-full max-w-[420px] origin-center scale-[0.82] items-center justify-center sm:max-w-[480px] sm:scale-100 lg:order-2 lg:mx-0 lg:max-w-none lg:justify-end">
+          <Entropy size={540} className="rounded-[2rem] !bg-transparent" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[3rem]"
+            style={{
+              background:
+                "radial-gradient(60% 50% at 50% 40%, rgba(145,129,245,0.10), transparent 70%)",
+            }}
+          />
         </div>
       </div>
     </section>
