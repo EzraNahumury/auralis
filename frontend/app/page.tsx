@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { Hero } from "@/components/sections/hero";
 import { HowAuralis } from "@/components/sections/how-auralis";
 import { WhatYouCanDo } from "@/components/sections/what-you-can-do";
+import { SecurityIntegrations } from "@/components/sections/security-integrations";
 import { Problem } from "@/components/sections/problem";
 import { Showcase } from "@/components/sections/showcase";
 import { Features } from "@/components/sections/features";
@@ -21,6 +22,7 @@ export default function Home() {
         <Hero />
         <HowAuralis />
         <WhatYouCanDo />
+        <SecurityIntegrations />
         <Problem />
         <Showcase />
         <Features />
