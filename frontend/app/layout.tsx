@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { LenisProvider } from "@/components/providers/lenis-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -9,6 +10,13 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
@@ -33,14 +41,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="relative min-h-full overflow-x-hidden bg-bg text-fg">
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-0 z-0 bg-noise opacity-[0.04] mix-blend-overlay"
+          className="pointer-events-none fixed inset-0 z-0 bg-noise opacity-[0.05] mix-blend-overlay"
         />
-        <div className="relative z-10">{children}</div>
+        <LenisProvider>
+          <div className="relative z-10">{children}</div>
+        </LenisProvider>
       </body>
     </html>
   );

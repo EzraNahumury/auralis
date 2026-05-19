@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type Variant = "primary" | "secondary" | "ghost";
@@ -13,15 +13,6 @@ type Props = {
   external?: boolean;
 };
 
-const styles: Record<Variant, string> = {
-  primary:
-    "bg-fg text-bg hover:bg-violet-soft hover:text-bg shadow-[0_10px_30px_-12px_rgba(124,108,255,0.55)]",
-  secondary:
-    "bg-white/[0.04] text-fg border border-border-strong hover:bg-white/[0.08] hover:border-violet/40 backdrop-blur",
-  ghost:
-    "text-fg-muted hover:text-fg",
-};
-
 export function Button({
   href,
   children,
@@ -33,26 +24,97 @@ export function Button({
   const isHash = href.startsWith("#");
   const Component = isHash ? "a" : Link;
   const externalProps =
-    external || /^https?:/.test(href)
-      ? { target: "_blank", rel: "noreferrer" }
-      : {};
+    external || /^https?:/.test(href) ? { target: "_blank", rel: "noreferrer" } : {};
+
+  const base = "group inline-flex items-center gap-3 px-6 py-3 text-sm font-medium will-change-transform hover:-translate-y-[1px] active:translate-y-0";
+
+  if (variant === "primary") {
+    return (
+      <Component
+        href={href as never}
+        {...externalProps}
+        className={cn("btn-pill-light", base, className)}
+      >
+        <span>{children}</span>
+        {withArrow && (
+          <span aria-hidden className="grid size-8 place-items-center rounded-full bg-bg text-fg transition-transform duration-300 group-hover:translate-x-0.5">
+            <ArrowUpRight className="size-4" />
+          </span>
+        )}
+      </Component>
+    );
+  }
+
+  if (variant === "secondary") {
+    return (
+      <Component
+        href={href as never}
+        {...externalProps}
+        className={cn("btn-pill-dark", base, className)}
+      >
+        <span className="text-gradient font-medium">{children}</span>
+        {withArrow && (
+          <ArrowUpRight className="size-4 text-fg-muted transition-transform duration-300 group-hover:translate-x-0.5" />
+        )}
+      </Component>
+    );
+  }
 
   return (
     <Component
       href={href as never}
       {...externalProps}
       className={cn(
-        "group inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium",
-        "transition-all duration-300 ease-out",
-        "will-change-transform hover:-translate-y-[1px] active:translate-y-0",
-        styles[variant],
+        "inline-flex items-center gap-2 text-sm text-fg-muted transition-colors hover:text-fg",
         className
       )}
     >
       <span>{children}</span>
-      {withArrow && (
-        <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-      )}
     </Component>
+  );
+}
+
+type IconButtonProps = {
+  href?: string;
+  onClick?: () => void;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+  external?: boolean;
+};
+
+export function IconButton({
+  href,
+  onClick,
+  label,
+  className,
+  children,
+  external,
+}: IconButtonProps) {
+  if (href) {
+    const isHash = href.startsWith("#");
+    const Component = isHash ? "a" : Link;
+    const externalProps =
+      external || /^https?:/.test(href) ? { target: "_blank", rel: "noreferrer" } : {};
+    return (
+      <Component
+        href={href as never}
+        aria-label={label}
+        {...externalProps}
+        className={cn("btn-arrow", className)}
+      >
+        {children}
+      </Component>
+    );
+  }
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn("btn-arrow", className)}
+    >
+      {children}
+    </button>
   );
 }

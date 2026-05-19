@@ -6,12 +6,13 @@ import { cn } from "@/lib/cn";
 type Props = {
   children: React.ReactNode;
   className?: string;
-  glow?: "violet" | "emerald" | "cyan" | "none";
+  glow?: "violet" | "indigo" | "emerald" | "cyan" | "none";
   interactive?: boolean;
 };
 
 const glowColors: Record<NonNullable<Props["glow"]>, string> = {
-  violet: "rgba(124,108,255,0.18)",
+  violet: "rgba(145,129,245,0.22)",
+  indigo: "rgba(64,97,252,0.22)",
   emerald: "rgba(22,217,168,0.18)",
   cyan: "rgba(92,216,255,0.18)",
   none: "transparent",
@@ -42,10 +43,11 @@ export function GlowCard({
         } as React.CSSProperties
       }
       className={cn(
-        "group relative overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface/80 backdrop-blur-sm",
+        "group relative overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface/70 backdrop-blur-sm",
         "transition-all duration-500 ease-out",
-        interactive && "hover:border-border-strong hover:-translate-y-1 hover:bg-surface-2/80",
         "shadow-[var(--shadow-card)]",
+        interactive &&
+          "hover:border-border-strong hover:-translate-y-[2px] hover:bg-surface-2/80",
         className
       )}
     >

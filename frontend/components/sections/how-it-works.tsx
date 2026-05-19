@@ -42,10 +42,11 @@ export function HowItWorks() {
 
   return (
     <section id="workflow" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow={workflow.eyebrow}
-          title={workflow.title}
+          title="Six steps from"
+          italic="request to release."
           body={workflow.body}
         />
 

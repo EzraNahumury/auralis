@@ -71,10 +71,11 @@ export function Preview() {
 
   return (
     <section id="preview" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow={preview.eyebrow}
-          title={preview.title}
+          title="Watch a withdrawal pass"
+          italic="through the protocol."
           body={preview.body}
           tone="violet"
         />

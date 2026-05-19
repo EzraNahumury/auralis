@@ -25,11 +25,12 @@ export function Navbar() {
   useGSAP(
     () => {
       gsap.from(".nav-item", {
-        y: -16,
+        y: -14,
         opacity: 0,
-        stagger: 0.05,
+        stagger: 0.06,
         delay: 0.1,
-        duration: 0.6,
+        duration: 0.7,
+        ease: "expo.out",
       });
     },
     { scope: wrapperRef }
@@ -57,20 +58,20 @@ export function Navbar() {
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-x-0 top-4 z-50 flex justify-center px-4"
+      className="fixed inset-x-0 top-5 z-50 flex justify-center px-4"
     >
       <div
         className={cn(
-          "w-full max-w-6xl rounded-full border transition-all duration-500",
+          "w-full max-w-[1300px] rounded-full transition-all duration-500",
           scrolled
-            ? "border-border-strong bg-bg/70 backdrop-blur-xl shadow-[0_8px_30px_-12px_rgba(0,0,0,0.5)]"
-            : "border-transparent bg-transparent backdrop-blur-0"
+            ? "border border-border-strong bg-surface/80 backdrop-blur-xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.6)]"
+            : "border border-transparent bg-transparent backdrop-blur-0"
         )}
       >
-        <div className="flex items-center justify-between gap-6 px-4 py-2.5 sm:px-6">
+        <div className="flex items-center justify-between gap-6 px-3 py-2 sm:px-4">
           <a
             href="#top"
-            className="nav-item flex items-center gap-2 text-sm font-semibold tracking-tight"
+            className="nav-item flex items-center gap-2.5 pl-2 text-sm font-semibold tracking-tight"
           >
             <span
               aria-hidden
@@ -86,7 +87,7 @@ export function Navbar() {
               <a
                 key={l.href}
                 href={l.href}
-                className="nav-item rounded-full px-3.5 py-1.5 text-sm text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg"
+                className="nav-item rounded-full px-3.5 py-1.5 text-[13px] uppercase tracking-[0.1em] text-fg-muted transition-colors hover:text-fg"
               >
                 {l.label}
               </a>
@@ -95,7 +96,7 @@ export function Navbar() {
 
           <div className="hidden md:block">
             <span className="nav-item inline-block">
-              <Button href={nav.cta.href} variant="secondary" withArrow external>
+              <Button href={nav.cta.href} variant="primary" withArrow>
                 {nav.cta.label}
               </Button>
             </span>
@@ -122,18 +123,13 @@ export function Navbar() {
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  className="m-link rounded-2xl px-4 py-3 text-sm text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg"
+                  className="m-link rounded-2xl px-4 py-3 text-sm uppercase tracking-wider text-fg-muted transition-colors hover:bg-white/[0.04] hover:text-fg"
                 >
                   {l.label}
                 </a>
               ))}
-              <div className="m-link mt-2">
-                <Button
-                  href={nav.cta.href}
-                  variant="primary"
-                  className="w-full justify-center"
-                  external
-                >
+              <div className="m-link mt-2 flex justify-center">
+                <Button href={nav.cta.href} variant="primary" withArrow>
                   {nav.cta.label}
                 </Button>
               </div>

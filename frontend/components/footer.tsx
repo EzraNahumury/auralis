@@ -4,7 +4,7 @@ import { footer } from "@/lib/content";
 export function Footer() {
   return (
     <footer className="border-t border-border bg-bg/60">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
+      <div className="mx-auto grid max-w-[1300px] gap-12 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:px-10">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span aria-hidden className="grid size-7 place-items-center rounded-full ring-conic">
@@ -45,7 +45,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-border">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-6 py-6 text-xs text-fg-dim sm:flex-row sm:items-center lg:px-8">
+        <div className="mx-auto flex max-w-[1300px] flex-col items-start justify-between gap-3 px-6 py-6 text-xs text-fg-dim sm:flex-row sm:items-center lg:px-10">
           <p>© 2026 Auralis. MIT-licensed core contracts.</p>
           <p>POT-gas only. ink! 5.x. substrate-interface.</p>
         </div>

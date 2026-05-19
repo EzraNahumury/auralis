@@ -27,10 +27,11 @@ export function Impact() {
 
   return (
     <section id="impact" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow={impact.eyebrow}
-          title={impact.title}
+          title="A 200-million-person primitive,"
+          italic="dignified by code."
           body={impact.body}
           tone="violet"
         />

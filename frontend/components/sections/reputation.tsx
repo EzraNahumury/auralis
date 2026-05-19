@@ -30,10 +30,11 @@ export function Reputation() {
 
   return (
     <section id="reputation" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow={reputation.eyebrow}
-          title={reputation.title}
+          title="Portable reputation,"
+          italic="soulbound attestations."
           body={reputation.body}
           tone="emerald"
         />

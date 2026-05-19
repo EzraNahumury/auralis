@@ -29,10 +29,11 @@ export function Features() {
 
   return (
     <section id="features" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow="Capabilities"
-          title="Six engineered guarantees, not buzzwords."
+          title="Six engineered guarantees,"
+          italic="not buzzwords."
           body="Each capability maps to an onchain enforcement mechanism. The AI advises; the contract decides."
           tone="emerald"
         />

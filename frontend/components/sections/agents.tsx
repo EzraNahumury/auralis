@@ -30,10 +30,11 @@ export function Agents() {
 
   return (
     <section id="agents" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow={agents.eyebrow}
-          title={agents.title}
+          title="Two tiers of reasoning."
+          italic="One source of truth."
           body={agents.body}
           tone="violet"
         />

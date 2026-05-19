@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Hero } from "@/components/sections/hero";
 import { Problem } from "@/components/sections/problem";
-import { Solution } from "@/components/sections/solution";
+import { Showcase } from "@/components/sections/showcase";
 import { Features } from "@/components/sections/features";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { Preview } from "@/components/sections/preview";
@@ -18,7 +18,7 @@ export default function Home() {
       <main className="relative">
         <Hero />
         <Problem />
-        <Solution />
+        <Showcase />
         <Features />
         <HowItWorks />
         <Preview />

@@ -28,10 +28,11 @@ export function Problem() {
 
   return (
     <section id="problem" ref={ref} className="relative py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-[1300px] px-6 lg:px-10">
         <SectionHeading
           eyebrow="The problem"
-          title="Arisan works — until trust does not scale."
+          title="Arisan works — until"
+          italic="trust does not scale."
           body="Five recurring failure modes break Indonesia's most-loved community savings ritual. Auralis names them, then makes each one expensive."
         />
 
