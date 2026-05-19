@@ -1,0 +1,13 @@
+# Ignore all Cargo build artifacts for nested crates
+**/target/
+
+# Ignore temporary backup files from rustfmt/editor swaps
+**/*.rs.bk
+*.swp
+*~
+
+# Ignore Cargo.lock in library crates
+Cargo.lock
+
+# Ignore macOS metadata
+.DS_Store
