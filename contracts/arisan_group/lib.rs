@@ -171,19 +171,9 @@ mod arisan_group {
             max_members: u32,
         ) -> Self {
             let now = Self::env().block_timestamp();
-            let mut members: Mapping<AccountId, MemberInfo> = Mapping::default();
-            members.insert(
-                founder,
-                &MemberInfo {
-                    joined_at_ms: now,
-                    total_deposits: 0,
-                    on_time_deposits: 0,
-                    consecutive_on_time: 0,
-                    active: true,
-                },
-            );
-
-            Self {
+            // Construct first with default Mappings (so each field gets the
+            // storage's resolved key type), then insert the founder member.
+            let mut instance = Self {
                 group_id,
                 founder,
                 group_registry,
@@ -193,13 +183,24 @@ mod arisan_group {
                 period_days,
                 max_members,
                 created_at_ms: now,
-                members,
+                members: Mapping::default(),
                 member_count: 1,
                 deposit_marker: Mapping::default(),
                 deposits_in_round: Mapping::default(),
                 next_request_id: 1,
                 requests: Mapping::default(),
-            }
+            };
+            instance.members.insert(
+                founder,
+                &MemberInfo {
+                    joined_at_ms: now,
+                    total_deposits: 0,
+                    on_time_deposits: 0,
+                    consecutive_on_time: 0,
+                    active: true,
+                },
+            );
+            instance
         }
 
         /// Adds a new member. Only the GroupRegistry contract may call this —
@@ -449,7 +450,8 @@ mod arisan_group {
             if period_ms == 0 {
                 return 1;
             }
-            ((elapsed_ms / period_ms) as u32).saturating_add(1)
+            let rounds = elapsed_ms.checked_div(period_ms).unwrap_or(0);
+            u32::try_from(rounds).unwrap_or(u32::MAX).saturating_add(1)
         }
 
         #[ink(message)]

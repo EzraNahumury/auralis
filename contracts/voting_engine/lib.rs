@@ -1,13 +1,55 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
+use ink::primitives::AccountId;
+
+// ----- Cross-contract trait stubs (client views) -----
+//
+// These trait definitions act as type-safe client views of the OTHER
+// contracts. ink! derives the message selector deterministically from the
+// method name (BLAKE2b prefix), so as long as the method name + argument
+// types match the target contract's exported message, the SCALE-encoded
+// call wire-format is identical to what `build_call` produced. The benefit
+// over manual selectors:
+//   1. Real argument/return type-checking at compile time.
+//   2. Slightly cheaper gas (the compiler can inline / optimize encoding).
+//   3. Removes the `Result<(), u8>` placeholder used previously.
+
+/// View of AgentRegistry — only the message VotingEngine needs.
+#[ink::trait_definition]
+pub trait AgentRegistryView {
+    #[ink(message)]
+    fn owner_of(&self, agent_key: AccountId) -> Option<AccountId>;
+}
+
+/// View of ReputationRegistry.
+#[ink::trait_definition]
+pub trait ReputationRegistryView {
+    #[ink(message)]
+    fn get_weight_bps(&self, account: AccountId) -> u32;
+}
+
+/// Callback contract: ArisanGroup's `on_voting_finalized`.
+/// The return type is `Result<(), u8>` (vs. arisan_group's
+/// `Result<(), arisan_group::Error>`) because we don't have cross-crate
+/// type access — but the SCALE encodings are byte-identical so this works.
+#[ink::trait_definition]
+pub trait ArisanGroupCallback {
+    #[ink(message)]
+    fn on_voting_finalized(
+        &mut self,
+        req_id: u64,
+        approved: bool,
+        confidence_bps: u32,
+    ) -> Result<(), u8>;
+}
+
 // VotingEngine — Routes withdrawal requests through one of three execution
 // paths based on the Requester Agent's confidence score, then collects
 // reputation-weighted votes from Reviewer Agents.
 #[ink::contract]
 mod voting_engine {
+    use super::{AgentRegistryView, ArisanGroupCallback, ReputationRegistryView};
     use ink::storage::Mapping;
-    use ink::env::call::{build_call, ExecutionInput, Selector};
-    use ink::env::DefaultEnvironment;
 
     pub type RequestId = u64;
     pub type ReasoningCid = [u8; 32]; // IPFS CID stored as bytes32
@@ -18,11 +60,6 @@ mod voting_engine {
     const NORMAL_WINDOW_MS: u64 = 24 * 60 * 60 * 1000;     // 24h
     const FAST_TRACK_QUORUM_BPS: u32 = 3000; // 30%
     const NORMAL_QUORUM_BPS: u32 = 6000;     // 60%
-
-    // ----- Cross-contract selectors -----
-    const SEL_AGENT_OWNER_OF: [u8; 4] = ink::selector_bytes!("owner_of");
-    const SEL_REP_GET_WEIGHT_BPS: [u8; 4] = ink::selector_bytes!("get_weight_bps");
-    const SEL_ARISAN_ON_FINALIZED: [u8; 4] = ink::selector_bytes!("on_voting_finalized");
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     #[ink::scale_derive(Encode, Decode, TypeInfo)]
@@ -178,9 +215,17 @@ mod voting_engine {
 
             let now = self.env().block_timestamp();
             let (path, status, deadline_ms) = if confidence_bps >= FAST_TRACK_THRESHOLD {
-                (Path::FastTrack, Status::Pending, now + FAST_TRACK_WINDOW_MS)
+                (
+                    Path::FastTrack,
+                    Status::Pending,
+                    now.saturating_add(FAST_TRACK_WINDOW_MS),
+                )
             } else if confidence_bps >= AUTO_REJECT_THRESHOLD {
-                (Path::Normal, Status::Pending, now + NORMAL_WINDOW_MS)
+                (
+                    Path::Normal,
+                    Status::Pending,
+                    now.saturating_add(NORMAL_WINDOW_MS),
+                )
             } else {
                 (Path::AutoRejected, Status::Rejected, 0)
             };
@@ -225,18 +270,11 @@ mod voting_engine {
             let agent_key = self.env().caller();
 
             // STEP 1 — Resolve agent_key → user via AgentRegistry.owner_of
-            let owner_result = build_call::<DefaultEnvironment>()
-                .call(self.agent_registry)
-                .exec_input(
-                    ExecutionInput::new(Selector::new(SEL_AGENT_OWNER_OF))
-                        .push_arg(agent_key),
-                )
-                .returns::<Option<AccountId>>()
-                .try_invoke();
-            let user = match owner_result {
-                Ok(Ok(Some(u))) => u,
-                _ => return Err(Error::NotAuthorizedAgent),
-            };
+            let agent_reg: ink::contract_ref!(AgentRegistryView) =
+                self.agent_registry.into();
+            let user = agent_reg
+                .owner_of(agent_key)
+                .ok_or(Error::NotAuthorizedAgent)?;
 
             // STEP 2 — Load request, validate status & deadline.
             let mut req = self.requests.get(req_id).ok_or(Error::RequestNotFound)?;
@@ -253,18 +291,9 @@ mod voting_engine {
             }
 
             // STEP 4 — Read reputation-based vote weight for the USER.
-            let weight_result = build_call::<DefaultEnvironment>()
-                .call(self.reputation_registry)
-                .exec_input(
-                    ExecutionInput::new(Selector::new(SEL_REP_GET_WEIGHT_BPS))
-                        .push_arg(user),
-                )
-                .returns::<u32>()
-                .try_invoke();
-            let weight = match weight_result {
-                Ok(Ok(w)) => w,
-                _ => return Err(Error::CrossContractCallFailed),
-            };
+            let rep_reg: ink::contract_ref!(ReputationRegistryView) =
+                self.reputation_registry.into();
+            let weight = rep_reg.get_weight_bps(user);
 
             // STEP 5 — Update tally, persist vote, emit event.
             if approve {
@@ -311,7 +340,7 @@ mod voting_engine {
             }
 
             req.path = Path::Normal;
-            req.deadline_ms = now + NORMAL_WINDOW_MS;
+            req.deadline_ms = now.saturating_add(NORMAL_WINDOW_MS);
             self.requests.insert(req_id, &req);
 
             self.env().emit_event(Challenged {
@@ -344,8 +373,8 @@ mod voting_engine {
                 Path::AutoRejected => return Err(Error::AlreadyFinalized),
             };
             let total = req.total_voters_at_open.max(1) as u64;
-            let quorum_met =
-                (req.votes_count as u64).saturating_mul(10_000) >= (quorum_bps as u64) * total;
+            let quorum_met = (req.votes_count as u64).saturating_mul(10_000)
+                >= (quorum_bps as u64).saturating_mul(total);
 
             // Decide finalizability + outcome.
             let approved: bool = match req.path {
@@ -385,16 +414,9 @@ mod voting_engine {
             // Done LAST (CEI). If the callback fails we still consider this
             // VotingEngine state authoritative — the group can re-sync later
             // via a manual retry mechanism if needed.
-            let _ = build_call::<DefaultEnvironment>()
-                .call(req.arisan_group)
-                .exec_input(
-                    ExecutionInput::new(Selector::new(SEL_ARISAN_ON_FINALIZED))
-                        .push_arg(req_id)
-                        .push_arg(approved)
-                        .push_arg(req.confidence_bps),
-                )
-                .returns::<core::result::Result<(), u8>>()
-                .try_invoke();
+            let mut arisan_ref: ink::contract_ref!(ArisanGroupCallback) =
+                req.arisan_group.into();
+            let _ = arisan_ref.on_voting_finalized(req_id, approved, req.confidence_bps);
 
             Ok(approved)
         }

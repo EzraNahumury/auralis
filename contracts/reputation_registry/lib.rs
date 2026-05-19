@@ -143,10 +143,13 @@ mod reputation_registry {
             let old_score = stats.score;
 
             // Apply delta with explicit saturating math.
+            // `try_from` for the positive branch (rejects negatives, won't fail
+            // here since we checked sign), `unsigned_abs` for the negative
+            // branch (well-defined for i32::MIN → 2_147_483_648u32).
             stats.score = if delta_signed >= 0 {
-                old_score.saturating_add(delta_signed as u32)
+                old_score.saturating_add(u32::try_from(delta_signed).unwrap_or(0))
             } else {
-                old_score.saturating_sub((-delta_signed) as u32)
+                old_score.saturating_sub(delta_signed.unsigned_abs())
             };
             if stats.score > MAX_SCORE {
                 stats.score = MAX_SCORE;

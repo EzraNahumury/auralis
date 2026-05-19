@@ -1,7 +1,7 @@
 [package]
 name = "reputation_registry"
 version = "0.1.0"
-authors = ["Ezra Kristanto Nahumury <ezranhmry@gmail.com>"]
+authors = ["emmanuel zoe"]
 edition = "2021"
 
 [dependencies]
