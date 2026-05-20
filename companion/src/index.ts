@@ -79,7 +79,7 @@ async function main() {
       `Step ${stepNum}/5: ${name} deposits ${formatAmount(depositPlanck, props.tokenDecimals, props.tokenSymbol)} → group multisig`,
     );
     const tx = api.tx.balances.transferKeepAlive(multisigAddress, depositPlanck);
-    const rec = await signAndWait(tx, signer, name, stepNum, `${name} deposits to multisig`);
+    const rec = await signAndWait(api, tx, signer, name, stepNum, `${name} deposits to multisig`);
     transactions.push(rec);
     console.log(`  ✓ tx: ${rec.txHash}`);
     console.log(`  ✓ block #${rec.blockNumber}`);
@@ -94,42 +94,82 @@ async function main() {
   const callHash = innerCall.method.hash.toHex();
 
   // Reasonable weight estimate — overstated; chain refunds unused.
-  // For pallet-multisig.asMulti the maxWeight param is enforced.
-  // Native transferKeepAlive is cheap (~125ms ref_time, ~5KB proof_size).
-  const maxWeight = { refTime: 1_000_000_000, proofSize: 65_536 };
+  // Portaldot's runtime currently uses Weight V1 format (single u64), per
+  // chain metadata. Newer Substrate runtimes expect Weight V2 ({refTime,
+  // proofSize}) — but Portaldot specVersion 1002 from late 2023 hasn't
+  // migrated yet. Pass a single bigint here.
+  const maxWeight = 5_000_000_000n;
 
-  console.log(
-    `Step 4/5: Alice proposes withdrawal of ${formatAmount(totalPotPlanck, props.tokenDecimals, props.tokenSymbol)} → Dave`,
-  );
-  console.log(`  call hash: ${callHash}`);
-
+  // Before proposing, check if this multisig+callHash already has a pending
+  // proposal (from a previous run that completed step 4 but not step 5).
+  // If yes, skip step 4 and re-use the existing timepoint — otherwise Alice
+  // would hit "AlreadyApproved" trying to approve the same call_hash again.
   const aliceOthers = otherSignatories(sortedSignatories, alice.address);
-  const proposeTx = api.tx.multisig.approveAsMulti(
-    THRESHOLD,
-    aliceOthers,
-    null, // first call → no timepoint
-    callHash,
-    maxWeight,
-  );
-  const proposeRec = await signAndWait(proposeTx, alice, 'Alice', 4, 'Alice proposes withdrawal via multisig');
-  transactions.push(proposeRec);
-  console.log(`  ✓ tx: ${proposeRec.txHash}`);
-  console.log(`  ✓ block #${proposeRec.blockNumber} (timepoint anchor)`);
+  const existingMs: any = await api.query.multisig.multisigs(multisigAddress, callHash);
 
-  // Timepoint = the block + extrinsic-index of the first multisig proposal.
-  const timepoint = { height: proposeRec.blockNumber, index: extrinsicIndex(proposeRec) };
-  console.log();
+  let timepoint: { height: number; index: number };
+
+  if (existingMs.isSome) {
+    const m = existingMs.unwrap();
+    timepoint = {
+      height: m.when.height.toNumber(),
+      index: m.when.index.toNumber(),
+    };
+    console.log(
+      `Step 4/5: ⏭  skipped — existing multisig proposal found from prior run`,
+    );
+    console.log(`  call hash: ${callHash}`);
+    console.log(`  reusing timepoint: block #${timepoint.height}, extrinsic #${timepoint.index}`);
+    console.log();
+  } else {
+    console.log(
+      `Step 4/5: Alice proposes withdrawal of ${formatAmount(totalPotPlanck, props.tokenDecimals, props.tokenSymbol)} → Dave`,
+    );
+    console.log(`  call hash: ${callHash}`);
+
+    const proposeTx = api.tx.multisig.approveAsMulti(
+      THRESHOLD,
+      aliceOthers,
+      null, // first call → no timepoint
+      callHash,
+      maxWeight,
+    );
+    const proposeRec = await signAndWait(api, proposeTx, alice, 'Alice', 4, 'Alice proposes withdrawal via multisig');
+    transactions.push(proposeRec);
+    console.log(`  ✓ tx: ${proposeRec.txHash}`);
+    console.log(`  ✓ block #${proposeRec.blockNumber} (timepoint anchor)`);
+
+    // Read the actual timepoint from chain state — pallet-multisig stores
+    // `when: { height, index }` keyed by (account, call_hash). Querying it
+    // gives us the exact extrinsic index, which we cannot easily derive
+    // from the sign-and-send result alone.
+    const fresh: any = await api.query.multisig.multisigs(multisigAddress, callHash);
+    if (!fresh.isSome) {
+      throw new Error('Multisig record not found immediately after proposing');
+    }
+    const m = fresh.unwrap();
+    timepoint = {
+      height: m.when.height.toNumber(),
+      index: m.when.index.toNumber(),
+    };
+    console.log(`  ✓ timepoint: block #${timepoint.height}, extrinsic #${timepoint.index}`);
+    console.log();
+  }
 
   console.log(`Step 5/5: Bob approves — quorum met, executes payout atomically`);
   const bobOthers = otherSignatories(sortedSignatories, bob.address);
+  // Portaldot's pallet-multisig uses the older 6-arg `asMulti` signature
+  // that still has `store_call: bool` between the call data and max_weight.
+  // Modern Substrate dropped this param; Portaldot specVersion 1002 hasn't.
   const executeTx = api.tx.multisig.asMulti(
     THRESHOLD,
     bobOthers,
     timepoint,
     callData,
+    false,        // store_call: don't persist the call data on-chain
     maxWeight,
   );
-  const executeRec = await signAndWait(executeTx, bob, 'Bob', 5, 'Bob approves, multisig auto-executes payout');
+  const executeRec = await signAndWait(api, executeTx, bob, 'Bob', 5, 'Bob approves, multisig auto-executes payout');
   transactions.push(executeRec);
   console.log(`  ✓ tx: ${executeRec.txHash}`);
   console.log(`  ✓ block #${executeRec.blockNumber}`);
@@ -192,6 +232,7 @@ function extrinsicIndex(rec: TxRecord): number {
 }
 
 async function signAndWait(
+  api: any,
   tx: any,
   signer: any,
   signerName: string,
@@ -200,7 +241,7 @@ async function signAndWait(
 ): Promise<TxRecord> {
   return new Promise((resolve, reject) => {
     let unsub: (() => void) | null = null;
-    tx.signAndSend(signer, ({ status, txHash, events, dispatchError }: any) => {
+    tx.signAndSend(signer, async ({ status, txHash, events, dispatchError }: any) => {
       if (dispatchError) {
         unsub?.();
         const msg = dispatchError.isModule
@@ -213,18 +254,19 @@ async function signAndWait(
       }
       if (status.isInBlock) {
         const blockHash = status.asInBlock.toHex();
-        // Query block number from the block hash
-        signer.api ??
-          tx.api ??
-          (async () => {
-            /* noop — api ref lost in sign closure; resolve below via header lookup */
-          })();
-        // Fall through to resolve once finalized OR immediately on inBlock
-        // for speed during a dev-node demo.
         const eventSummary = (events ?? []).map((e: any) => ({
           section: e.event?.section,
           method: e.event?.method,
         }));
+        // Look up block number from block hash for proper logging + proof.
+        let blockNumber = 0;
+        try {
+          const header = await api.rpc.chain.getHeader(blockHash);
+          blockNumber = header.number.toNumber();
+        } catch {
+          // If header lookup fails (e.g., node pruned), keep 0 — txHash is
+          // still the canonical proof reference.
+        }
         unsub?.();
         resolve({
           step,
@@ -232,12 +274,12 @@ async function signAndWait(
           signer: signerName,
           txHash: txHash.toHex(),
           blockHash,
-          blockNumber: 0, // resolved post-hoc; can fetch via api.rpc.chain.getHeader(blockHash)
+          blockNumber,
           events: eventSummary,
         });
       }
     })
-      .then((u) => {
+      .then((u: any) => {
         unsub = u as () => void;
       })
       .catch(reject);

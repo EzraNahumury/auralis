@@ -19,7 +19,7 @@
 > **Our submission therefore has two complementary deliverables:**
 >
 > 1. **Architectural deliverable** — 7 complete ink! 5.x contracts in [`contracts/`](./contracts/). Build clean to optimized WASM. Ready to deploy as soon as Portaldot ships Contracts API v9+. (Full design in Sections 5-13 below.)
-> 2. **Live on-chain deliverable** — a minimal Arisan flow in [`companion/`](./companion/) using native Portaldot pallets (`pallet-balances` + `pallet-multisig`). 5 transactions, deployable today on `portaldot_dev`. (See Section 14.)
+> 2. **Live on-chain deliverable** — a minimal Arisan flow in [`companion/`](./companion/) using native Portaldot pallets (`pallet-balances` + `pallet-multisig`). **5 transactions already executed live on Portaldot dev** (2026-05-20); see [§14.7](#147-️-captured-native-pallet-proof-live-on-portaldot-dev) for the captured tx hashes.
 >
 > This hybrid satisfies the "Portaldot Native Deployment" criterion (live POT-fee transactions on Portaldot) while preserving the full ink! 5.x architecture we designed.
 
@@ -1211,6 +1211,45 @@ When `companion/tx-proof.json` is committed to the repo after running the demo, 
 - ✅ Working frontend that triggers companion flow (demo-able)
 - ✅ Documented design (this README + `contracts/README.md` + `companion/README.md`)
 - ✅ Demo video showing the live flow + walkthrough of the full ink! design
+
+### 14.7 ⛓️ Captured native-pallet proof (live on Portaldot dev)
+
+The companion demo was executed live on the community-hosted Portaldot dev node on **2026-05-20**. All five transactions below are permanent on-chain:
+
+**Network:**
+- RPC: `wss://drip-node-production.up.railway.app`
+- Chain: `Development` (Portaldot specVersion 1002)
+- Token: POT · SS58 prefix 42 · 14 decimals (12 on this dev chain)
+
+**Participants:**
+- Alice (member): `5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`
+- Bob (member): `5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty`
+- Charlie (member): `5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y`
+- Dave (recipient): `5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy`
+- **Multisig group (2-of-3): `5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7`**
+
+**Transactions:**
+
+| # | Step | Signer | Block | Tx hash |
+|---|------|--------|------:|---------|
+| 1 | Alice deposits 100 POT → multisig | Alice | 50605 | `0x7060bd5e001f61acad123b700ecae9f3287bacb35055bf15c541b4c44f088bce` |
+| 2 | Bob deposits 100 POT → multisig | Bob | 50606 | `0xed2cb84dad2bd2ce5c0bddff21fc1e5957985af8ff20b007bf62c771ef3f3acd` |
+| 3 | Charlie deposits 100 POT → multisig | Charlie | 50607 | `0x4bb1dd89e8774cb40b59fd5b2f02657f448c2ff8c13779d5670d433393df3ebb` |
+| 4 | Alice proposes withdrawal (multisig.approveAsMulti) | Alice | 50551 | `0xfdf2293e845c5ab1cee45833584ddab5812e312d58232dfb60bd4ca2725cc0bf` |
+| 5 | Bob approves → quorum hit → auto-executes payout | Bob | 50608 | `0xe26e5822fdef1bd84e7107489c0866117e43ddfff70b525f7729aa019f78cf2a` |
+
+**Result:** Dave's wallet went from 5,000,000 POT → 5,000,300 POT in one atomic multisig execution. The full machine-readable proof bundle is at [`companion/tx-proof.json`](./companion/tx-proof.json).
+
+**Reproduce verification:** any reviewer can re-query the chain by tx hash to confirm:
+```bash
+cd companion
+npm install
+npm run verify    # re-checks each tx hash against the Portaldot dev node
+```
+
+This satisfies the Portaldot Mini Hackathon S1 "Portaldot Native Deployment" criterion per Discord admin guidance:
+
+> "For proof just include a transaction hash from your local node in your README. That is your native deployment evidence." — @Quabnation, 2026-05-14
 
 ---
 

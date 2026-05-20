@@ -1,6 +1,10 @@
 node_modules/
 dist/
 .env
-tx-proof.json
 *.log
 .DS_Store
+
+# Note: tx-proof.json is NOT ignored — it's the canonical submission proof
+# bundle and lives in version control. If you re-run `npm start` it WILL be
+# overwritten; make a copy as tx-proof.<date>.json if you want to preserve
+# multiple runs.
