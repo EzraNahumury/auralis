@@ -1169,38 +1169,211 @@ The companion is **deliberately minimal** — it proves the core money flow work
 
 ### 14.5 Implications for collaborators
 
-#### Frontend (FE) contributor — `frontend/`
+The SC (ink!) work is **frozen** — submission-ready, no further changes needed. The remaining work is split between FE and BE. Below are detailed handoff specs based on our pivot decisions.
 
-| Before pivot | After pivot |
-|--------------|-------------|
-| Use `@polkadot/api-contract` to call deployed ink! contracts | Use `@polkadot/api` directly to call native pallets |
-| 7 ABI JSON files needed | No ABIs needed for live demo |
-| Multi-contract wiring in env | Single Portaldot WS URL + multisig threshold config |
+---
 
-**Action items for FE friend:**
-1. **Install** `@polkadot/api` and `@polkadot/util-crypto` in `frontend/`
-2. **Connection layer** — port `companion/src/api.ts` pattern into `frontend/lib/portaldot/`
-3. **Demo page** — add a button that triggers the same 5-transaction flow `companion/src/index.ts` executes. Show each tx hash + block number live as it confirms.
-4. **Default login** — `//Alice` (shared dev account, pre-funded). No wallet extension required for the simple demo path.
-5. **Optional polish** — Portaldot Extension wallet support for non-Alice users, real account creation flow, etc.
+#### 🎨 Frontend (FE) contributor — `frontend/`
 
-**Do NOT spend time on:** `@polkadot/api-contract`, ABI parsing, contract-method discovery UI. None of these are reachable on Portaldot today.
+**Status:** original plan (`@polkadot/api-contract` → deployed ink! contracts) is **blocked**. FE now uses `@polkadot/api` directly against native pallets — same pattern proven in [`companion/`](./companion/) (already live on-chain, see §14.7).
 
-#### Backend (BE) contributor — `agents/`
+**Goal:** Provide a working "Live Demo" page where judges/users click a button and watch the 5-tx Arisan flow execute live on Portaldot dev node. Display each tx hash, block number, and final balance in real-time.
 
-The full BE specification in [Section 13](#13-backend-implementation-spec) is **still the design target post-API-upgrade**, but for hackathon submission its priority drops because the contracts it would call are not deployable.
+##### Wallet strategy: use `//Alice` for MVP
 
-**Recommended scope for hackathon submission:**
+Do NOT integrate wallet extension in Phase 1. Use the well-known Substrate dev account:
 
-1. **Off-chain LLM simulation (highest priority, 1-2 days)** — implement the Requester Agent and a single Reviewer Agent as Python scripts. Take a hard-coded "withdrawal request" payload, run the LLM, output the JSON verdict. Save reasoning logs as demo artifacts. This proves the AI reasoning component works without needing on-chain hooks.
+```typescript
+const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+const alice = keyring.addFromUri('//Alice');  // pre-funded with millions of POT
+```
 
-2. **(Optional) Native-pallet integration** — port `companion/src/index.ts` to Python using `substrate-interface`. Same flow, same tx hashes. Useful only if your demo narrative needs "BE-triggered transactions" rather than user-triggered ones.
+| Pros | Cons |
+|------|------|
+| ✅ Zero setup for judges | ❌ Shared account (no privacy) |
+| ✅ Instant demo, no popups | ❌ Not production model |
+| ✅ Pre-funded on dev chain | (acceptable for hackathon scope) |
 
-**Do NOT spend time on:** event subscription daemons, indexer, deploy script for ink! contracts — all blocked by the contract deployment issue. Document them as "post-API-upgrade Phase 2" in your part of the README.
+Portaldot Extension support → Phase 2 polish, optional.
 
-#### Smart contract (SC) work — FROZEN
+##### Phase 1 — MVP demo (must-do, ~4-6 hours)
 
-The 7 ink! 5.x contracts in `contracts/` are submission-ready. No further refactor or build work is needed. They will deploy unchanged when Portaldot Contracts API upgrades to v9+. The `contracts/README.md` documents architecture, build pipeline, dependency order, and ABI handoff.
+| # | Task | Time | Reference |
+|---|------|------|-----------|
+| 1 | `npm install @polkadot/api @polkadot/keyring @polkadot/util-crypto` | 2 min | — |
+| 2 | Port connection layer → `frontend/lib/portaldot/client.ts` | 15 min | `companion/src/api.ts` |
+| 3 | Port multisig helper → `frontend/lib/portaldot/multisig.ts` (no logic change) | 5 min | `companion/src/multisig.ts` |
+| 4 | Reimagine 5-tx flow as async generator → `frontend/lib/portaldot/flow.ts` | 1-2 hours | `companion/src/index.ts` |
+| 5 | Build React hook → `frontend/hooks/usePortaldot.ts` | 30 min | — |
+| 6 | Demo page + 3 components | 2 hours | (see file structure below) |
+| 7 | Env var: `NEXT_PUBLIC_PORTALDOT_WS=wss://drip-node-production.up.railway.app` | 5 min | — |
+| 8 | E2E test in browser | 30 min | — |
+
+##### Target file structure
+
+```
+frontend/
+├── app/
+│   └── demo/
+│       └── page.tsx                  # ← NEW — Live demo page
+├── components/
+│   └── demo/                         # ← NEW
+│       ├── ArisanFlowRunner.tsx      # Main button + flow orchestration
+│       ├── TxStepCard.tsx            # Per-step pending/success/error UI
+│       └── ConnectionBanner.tsx      # 🟢/🔴 RPC status
+├── hooks/
+│   └── usePortaldot.ts               # ← NEW — useApi + connection state
+└── lib/
+    └── portaldot/                    # ← NEW
+        ├── client.ts                 # port companion/src/api.ts (singleton ApiPromise)
+        ├── multisig.ts               # port companion/src/multisig.ts (verbatim)
+        ├── flow.ts                   # 5-tx flow as `async function*` yielding step events
+        └── format.ts                 # formatAmount, toPlanck (port from companion/src/api.ts)
+```
+
+##### Recommended async-generator flow pattern
+
+```typescript
+// lib/portaldot/flow.ts
+export type FlowEvent =
+  | { kind: 'step-start'; step: number; description: string }
+  | { kind: 'step-success'; step: number; txHash: string; blockNum: number }
+  | { kind: 'step-error'; step: number; error: string }
+  | { kind: 'flow-complete'; daveBalance: bigint; multisigBalance: bigint };
+
+export async function* runArisanFlow(api: ApiPromise): AsyncGenerator<FlowEvent> {
+  // ... yield events as 5 txs progress
+  // (see companion/src/index.ts for full algorithm including the
+  //  "existing multisig proposal" detection in step 4)
+}
+```
+
+UI consumes via `for await (const event of runArisanFlow(api))` → setState. Lets React stay responsive while tx flow runs.
+
+##### Phase 2 — Polish (optional)
+
+- Add `@polkadot/extension-dapp` + Portaldot Extension wallet support (toggle: "Use Alice" vs "Connect wallet")
+- Per-tx explorer links (`https://polkadot.js.org/apps/?rpc=<encoded>#/explorer/query/<blockHash>`)
+- Pre-flight balance check + display
+- "Verify proof" button that re-runs `npm run verify`-equivalent in browser
+
+##### DO NOT spend time on
+
+- ❌ `@polkadot/api-contract` (no ink! contracts to call)
+- ❌ ABI JSON parsing UI
+- ❌ Cross-contract orchestration UI (`AgentRegistry` ↔ `VotingEngine` ↔ etc.)
+- ❌ Multi-step wizard for ink!-specific concepts (badges, reputation tier, etc. — not in native-pallet demo)
+
+These can be added post-Portaldot-API-upgrade. For now, anything `contracts/*` related stays as architectural documentation only.
+
+---
+
+#### 🐍 Backend (BE) contributor — `agents/`
+
+**Status:** Full BE spec in [Section 13](#13-backend-implementation-spec) (orchestrator, event listener, indexer, multi-agent system) is the **post-API-upgrade design target** — keep it as architectural reference. For hackathon submission, scope drops drastically because the SC the BE would call isn't deployable.
+
+**Recommended scope:** off-chain LLM simulation only. Demonstrate the AI reasoning quality without on-chain hooks.
+
+##### Phase 1 — Off-chain LLM simulation (must-do, ~1-2 days)
+
+| # | Task | Time | Output artifact |
+|---|------|------|-----------------|
+| 1 | Setup Python project in `agents/simulation/` | 30 min | `pyproject.toml`, `.venv/` |
+| 2 | Install: `anthropic`, `langchain`, `langchain-anthropic`, `pydantic` | 5 min | `requirements.txt` |
+| 3 | Implement `requester_agent.py` | 3-4 hours | Class + sample run |
+| 4 | Implement `reviewer_agent.py` (3 personas: Conservative / TrustDefault / StrictEmergency) | 3-4 hours | Class + sample runs |
+| 5 | Implement `run_simulation.py` — end-to-end runner | 1 hour | `outputs/full_simulation_<ts>.md` |
+| 6 | Document in `agents/README.md` | 30 min | Markdown doc |
+
+##### Requester Agent contract (Phase 1)
+
+**Input:** hardcoded sample payload
+```python
+WithdrawalRequest(
+    requester="5DAA...",
+    amount_pot=300,
+    reason="Medical emergency — surgery scheduled next week",
+    mock_history={
+        "deposits_made": 12,
+        "deposits_on_time": 11,
+        "reputation_score": 720,
+        "badges": ["ConsistentPayer", "TrustedMember"],
+    }
+)
+```
+
+**Process:**
+1. Format input into structured prompt for Claude
+2. Call Anthropic API with system prompt = pre-validation persona
+3. Parse JSON response
+
+**Output:**
+```python
+RequesterVerdict(
+    confidence_bps=8700,           # 0..10000 (basis points)
+    verdict="FAST_TRACK",          # FAST_TRACK | PASS | REJECT
+    reasoning="Member has 91.6% on-time rate, TrustedMember badge...",
+    flags=["EMERGENCY_VERIFIED"],
+)
+```
+
+Save to `outputs/requester_<timestamp>.json`. Print summary to terminal.
+
+##### Reviewer Agent contract (Phase 1)
+
+**Input:** request + Requester Agent's verdict (as one input, not gospel) + persona config
+**Output:** approve/reject + reasoning + per-persona confidence
+
+Run 3 times per scenario (one per persona) → produces 3 votes. Print weighted tally (vote × persona weight).
+
+##### Phase 2 — Optional native-pallet integration
+
+If Phase 1 done early, mirror `companion/src/index.ts` in Python using `substrate-interface`:
+
+```python
+from substrateinterface import SubstrateInterface, Keypair
+api = SubstrateInterface(url=WS_URL, ss58_format=42)
+alice = Keypair.create_from_uri("//Alice")
+# ... same 5-tx flow
+```
+
+Useful only if demo narrative wants "BE-triggered txs" instead of "user-triggered txs from FE". Optional.
+
+##### DO NOT spend time on
+
+- ❌ Event subscription daemons / orchestrator main loop
+- ❌ PostgreSQL indexer + schema setup
+- ❌ ink! contract deploy script (`scripts/deploy_portaldot.py`)
+- ❌ Cross-contract event correlation
+- ❌ Agent key derivation / signing service
+- ❌ IPFS upload pipelines (just save reasoning to local files for demo)
+
+All blocked by no SC deploy. Document them as "Post-API-Upgrade Phase 2" in `agents/README.md` so reviewers understand the full architectural intent.
+
+---
+
+#### 📜 Smart contract (SC) work — FROZEN ✅
+
+The 7 ink! 5.x contracts in [`contracts/`](./contracts/) are submission-ready:
+
+- ✅ Build clean to optimized WASM (~9-16K per contract)
+- ✅ Unit tests pass for each
+- ✅ Documented in [`contracts/README.md`](./contracts/README.md)
+- ✅ Ready to deploy unchanged once Portaldot Contracts API upgrades to v9+
+
+**No further refactor or build work is needed.** The deploy commands live in `contracts/README.md` §5 — just swap the RPC URL when the API upgrade lands.
+
+---
+
+#### 🤝 Coordination workflow
+
+| Owner | Communicates to | When |
+|-------|-----------------|------|
+| **You** (project lead) | FE friend | Share this section + `companion/README.md` URL. Confirm Phase 1 scope. |
+| **You** | BE friend | Share this section + Section 13. Confirm Phase 1 scope (simulation only). |
+| **FE friend** | You | After ports `companion/src/*` to `frontend/lib/portaldot/`, demo working in browser, mergeable PR. |
+| **BE friend** | You | After 1 end-to-end simulation runs, prints reasoning to terminal + saves to file. |
+| **All** | All | Daily sync via Discord/WA — share blockers, current state. Especially watch for Portaldot Contracts API upgrade announcement. |
 
 ### 14.6 Submission proof checklist
 
