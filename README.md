@@ -1424,6 +1424,36 @@ This satisfies the Portaldot Mini Hackathon S1 "Portaldot Native Deployment" cri
 
 > "For proof just include a transaction hash from your local node in your README. That is your native deployment evidence." — @Quabnation, 2026-05-14
 
+### 14.8 Why not on `wss://mainnet.portaldot.io/` (mainnet)?
+
+On **2026-05-20** Portaldot announced the official block explorer at [portalscan.portaldot.io](https://portalscan.portaldot.io/), indexing `wss://mainnet.portaldot.io/`. We probed mainnet to assess whether to re-target the companion demo there for explorer-visible proof.
+
+**Findings** (reproducible via `companion/src/check-mainnet.ts`):
+
+| Aspect | Mainnet (`wss://mainnet.portaldot.io/`) | Companion target (Railway dev) |
+|--------|----------------------------------------|-------------------------------|
+| Chain name | Portaldot Mainnet | Development |
+| Node version | 2.0.0 (same binary family) | 2.0.0 (same) |
+| specVersion | **1002** | 1002 |
+| Contracts API | **v5** (same blocker, ink! 5.x still rejected) | v5 |
+| Token decimals | 14 | 12 |
+| `//Alice` balance | **0 POT** (not pre-funded) | Millions of POT (dev genesis) |
+
+**Two implications:**
+
+1. **SC deploy to mainnet is still blocked** — mainnet runs the same `portaldot_dev` v1002 binary with Contracts API v5. No ink! version is deployable to either chain today.
+
+2. **Companion on mainnet would work as native pallets are unaffected**, but Alice has 0 POT there. No public faucet exists (per Discord admin Fardhan, 2026-05-18). POT acquisition for mainnet appears to require a bridge or admin-issued transfer — not something we can do within the hackathon window.
+
+**Decision:** keep companion proof on Railway dev (where Alice is pre-funded and tx already executed). README's §14.7 transaction hashes remain the canonical native deployment evidence. Once a POT acquisition path opens for mainnet, the same `companion/src/index.ts` can be re-run against mainnet with a single `.env` change (`PORTALDOT_WS=wss://mainnet.portaldot.io/`) — txs will then appear in portalscan.
+
+**Reviewers can verify our mainnet probe themselves:**
+```bash
+cd companion
+npm install
+npx tsx src/check-mainnet.ts
+```
+
 ---
 
 ## 15. Getting Started
