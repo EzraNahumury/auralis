@@ -1659,7 +1659,7 @@ Aligned with the official Portaldot hackathon judging criteria:
 
 ## 20. Team & Credits
 
-- **Project Owner:** Ezra Kristanto Nahumury — Full-stack & smart contract dev
+- **Project Owner:** emmanuel zoe — full-stack & smart contract dev
 - **Stack credits:**
   - [Portaldot](https://portaldot-dev.readthedocs.io/) — Layer-0 host chain, native runtime, POT gas token
   - [Portaldot Python SDK (`substrate-interface`)](https://portaldot-dev.readthedocs.io/en/latest/python-sdk/Install.html) — official agent/deploy SDK
