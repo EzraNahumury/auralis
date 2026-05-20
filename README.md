@@ -22,6 +22,8 @@
 > 2. **Live on-chain deliverable** — a minimal Arisan flow in [`companion/`](./companion/) using native Portaldot pallets (`pallet-balances` + `pallet-multisig`). **5 transactions already executed live on Portaldot dev** (2026-05-20); see [§14.7](#147-️-captured-native-pallet-proof-live-on-portaldot-dev) for the captured tx hashes.
 >
 > This hybrid satisfies the "Portaldot Native Deployment" criterion (live POT-fee transactions on Portaldot) while preserving the full ink! 5.x architecture we designed.
+>
+> 📋 **Coordinating with the team?** See [`STATUS.md`](./STATUS.md) — a Bahasa Indonesia briefing explaining why the SC strategy kept changing, what's blocked vs unblocked, and the actionable to-do list per role (FE / BE / SC).
 
 ---
 
@@ -1423,6 +1425,28 @@ npm run verify    # re-checks each tx hash against the Portaldot dev node
 This satisfies the Portaldot Mini Hackathon S1 "Portaldot Native Deployment" criterion per Discord admin guidance:
 
 > "For proof just include a transaction hash from your local node in your README. That is your native deployment evidence." — @Quabnation, 2026-05-14
+
+#### Admin-endorsed criteria (LevelMax, 2026-05-20 19:36)
+
+When we asked the Portaldot admin team for an explicit definition of "minimal demonstration of a native pallet", LevelMax replied:
+
+> 1. Transaction signed in Portaldot (development node or mainnet)
+> 2. Transaction hash + inclusion of the block as proof
+> 3. Logic mapped to the intent of your contract
+
+Our companion demo satisfies all three:
+
+| Criterion | Evidence in this repo |
+|-----------|------------------------|
+| 1. Transaction signed in Portaldot | ✅ All 5 tx signed by `//Alice` on Portaldot binary (specVersion 1002), confirmed via `companion/src/check-mainnet.ts` matching specs |
+| 2. Tx hash + block inclusion as proof | ✅ 5 hashes + block numbers in [`companion/tx-proof.json`](./companion/tx-proof.json) and §14.7 above |
+| 3. Logic mapped to contract intent | ✅ Mapping table in §14.4 (ink! method ↔ native pallet equivalent) |
+
+Additionally, LevelMax pinned the discussion and stated:
+
+> "The native pallet path is genuinely solid for most hackathon use cases. assets + balances + identity + staking covers a lot of ground — don't sleep on it."
+
+This is the path we took.
 
 ### 14.8 Why not on `wss://mainnet.portaldot.io/` (mainnet)?
 
