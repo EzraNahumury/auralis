@@ -4,15 +4,9 @@ import { Hero } from "@/components/sections/hero";
 import { HowAuralis } from "@/components/sections/how-auralis";
 import { WhatYouCanDo } from "@/components/sections/what-you-can-do";
 import { SecurityIntegrations } from "@/components/sections/security-integrations";
-import { Problem } from "@/components/sections/problem";
-import { Showcase } from "@/components/sections/showcase";
-import { Features } from "@/components/sections/features";
-import { HowItWorks } from "@/components/sections/how-it-works";
-import { Preview } from "@/components/sections/preview";
-import { Agents } from "@/components/sections/agents";
-import { Reputation } from "@/components/sections/reputation";
-import { Impact } from "@/components/sections/impact";
-import { CTA } from "@/components/sections/cta";
+import { FAQ } from "@/components/sections/faq";
+import { Academy } from "@/components/sections/academy";
+import { StartCTA } from "@/components/sections/start-cta";
 
 export default function Home() {
   return (
@@ -23,15 +17,9 @@ export default function Home() {
         <HowAuralis />
         <WhatYouCanDo />
         <SecurityIntegrations />
-        <Problem />
-        <Showcase />
-        <Features />
-        <HowItWorks />
-        <Preview />
-        <Agents />
-        <Reputation />
-        <Impact />
-        <CTA />
+        <FAQ />
+        <Academy />
+        <StartCTA />
       </main>
       <Footer />
     </>

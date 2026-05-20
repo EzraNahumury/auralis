@@ -286,6 +286,45 @@ export const impact = {
   ],
 };
 
+export const faq = {
+  title: "Frequently Asked Questions",
+  hint: "The Text Is About Answering The Most Common And Frequently Asked Questions.",
+  community: {
+    label: "Any Questions? Ask\nThe Community.",
+    href: "https://github.com/EzraNahumury/auralis",
+  },
+  items: [
+    {
+      q: "How does Auralis work?",
+      a: "Auralis turns a traditional Arisan (rotating savings group) into a transparent onchain coordination protocol. Members deposit POT every round; AI agents pre-validate withdrawal requests; reviewer agents cast reputation-weighted votes onchain. The contract enforces the verdict — no manual gatekeeper.",
+    },
+    {
+      q: "What is Arisan, and why does it need AI?",
+      a: "Arisan is Indonesia's centuries-old rotating savings tradition: members deposit a fixed amount each round, and one member receives the pot. Coordination breaks at scale — opaque approvals, no portable reputation, slow group chats. AI gives the group a verifiable shared brain that scores every request the same way, every time.",
+    },
+    {
+      q: "How do the AI agents reach a verdict?",
+      a: "A Requester Agent pre-validates in under 10 seconds against deposit history, reputation, cross-group activity, and reason plausibility. Each member has a Reviewer Agent that reasons independently against their own policy (Conservative / Trust-default / Strict-emergency) and casts a weighted onchain ballot. The VotingEngine finalizes once quorum or deadline is met.",
+    },
+    {
+      q: "What are the reputation tiers?",
+      a: "Reputation runs 0–1000 across four tiers — Bronze, Silver, Gold, Platinum. Higher tiers scale vote weight up to 1.5×. Score is earned through on-time deposits, vote quality, badges, and time in groups. Reputation is portable across every Auralis group on Portaldot; a defaulter doesn't get a clean slate.",
+    },
+    {
+      q: "Which blockchain does Auralis run on?",
+      a: "Auralis is built natively on Portaldot using ink! smart contracts. Six composable contracts handle group state, voting, treasury, reputation, badges, and the global registry. POT pays gas. AI reasoning runs offchain; verdicts and reasoning hashes are recorded onchain (with the full trace on IPFS).",
+    },
+    {
+      q: "Is my deposit safe?",
+      a: "Funds live in the Treasury contract and only release on a finalized APPROVED verdict. Emergency optimistic releases come with a challenge window where any member can pull the brake. All decisions are recorded onchain with their reasoning CIDs for permanent audit.",
+    },
+    {
+      q: "How do I join an Auralis group?",
+      a: "Connect a Portaldot wallet, browse open Arisan groups in the directory, and request to join — existing members vote you in. Or create your own group via the GroupRegistry contract, set the round amount, member cap, and rules, and invite friends. Reputation follows you to every group.",
+    },
+  ],
+};
+
 export const ctaSection = {
   title: "Ship a transparent Arisan in a weekend.",
   body:
