@@ -1,367 +1,210 @@
 "use client";
 
-import { use, useRef, useState } from "react";
+import { useRef } from "react";
+import Link from "next/link";
 import { useGSAP } from "@gsap/react";
-import { notFound } from "next/navigation";
-import {
-  BrainCircuit,
-  CircleCheck,
-  CircleX,
-  Clock,
-  FileLock,
-  Sparkles,
-  ThumbsUp,
-  ThumbsDown,
-  Flag,
-} from "lucide-react";
 import { gsap, registerGsap } from "@/lib/gsap";
-import { getGroup, getRequest } from "@/lib/mock";
-import { PageHeader } from "@/components/app/page-header";
-import { GlowCard } from "@/components/ui/glow-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
+import { useChain } from "@/components/providers/chain-provider";
+import { shortHash } from "@/lib/chain/proof";
+import { AVATARS, type MemberName } from "@/lib/avatars";
 
-export default function RequestPage({
-  params,
-}: {
-  params: Promise<{ id: string; reqId: string }>;
-}) {
-  const { id, reqId } = use(params);
-  const group = getGroup(id);
-  const req = getRequest(reqId);
+export default function RequestPage() {
   const ref = useRef<HTMLDivElement>(null);
-  const [myVote, setMyVote] = useState<"approve" | "reject" | null>(null);
+  const { steps, proof } = useChain();
+
+  const step4 = steps.find((s) => s.step === 4);
+  const step5 = steps.find((s) => s.step === 5);
+  const proposed = step4?.status === "confirmed";
+  const released = step5?.status === "confirmed";
+  const failed = step4?.status === "failed" || step5?.status === "failed";
+
+  const phaseLine = failed
+    ? "Something went wrong."
+    : released
+      ? "Pot delivered to Dave."
+      : proposed
+        ? "Waiting for the second approval."
+        : "Waiting for the first proposal.";
 
   useGSAP(
     () => {
       registerGsap();
+      if (!ref.current) return;
       gsap.fromTo(
-        ".anim-card",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, stagger: 0.06, duration: 0.7, ease: "expo.out" }
+        ref.current.querySelectorAll(".fade-in"),
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, stagger: 0.07, duration: 0.7, ease: "expo.out" }
       );
     },
     { scope: ref }
   );
 
-  if (!group || !req) notFound();
+  return (
+    <div ref={ref} className="flex flex-col gap-14">
+      <header className="fade-in">
+        <Link
+          href="/app/groups/g_rt03"
+          className="text-[12px] text-fg-dim underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
+        >
+          ← Group
+        </Link>
+        <h1 className="mt-5 text-[34px] font-semibold leading-tight tracking-tight text-fg sm:text-[40px]">
+          Payout to Dave
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-fg-muted">
+          {phaseLine} Once two of the three members have signed, the pot moves
+          automatically.
+        </p>
+      </header>
 
-  const approveWeight = req.votes
-    .filter((v) => v.verdict === "APPROVE")
-    .reduce((s, v) => s + v.weight, 0);
-  const rejectWeight = req.votes
-    .filter((v) => v.verdict === "REJECT")
-    .reduce((s, v) => s + v.weight, 0);
-  const pending = req.votes.filter((v) => v.verdict === "PENDING").length;
-  const totalWeight = req.votes.reduce((s, v) => s + v.weight, 0) || 1;
-  const approvePct = (approveWeight / totalWeight) * 100;
-  const rejectPct = (rejectWeight / totalWeight) * 100;
+      <section className="fade-in grid gap-y-6 gap-x-10 sm:grid-cols-3">
+        <div>
+          <p className="text-[12px] text-fg-muted">Amount</p>
+          <p className="mt-1.5 text-[24px] font-medium tabular-nums text-fg">
+            300 <span className="text-[14px] text-fg-muted">POT</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-[12px] text-fg-muted">From</p>
+          <p className="mt-1.5 text-[16px] text-fg">Group multisig</p>
+          {proof && (
+            <code
+              className="mt-1 block break-all text-[11px] text-fg-dim"
+              style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
+            >
+              {shortHash(proof.participants.multisig, 8, 6)}
+            </code>
+          )}
+        </div>
+        <div>
+          <p className="text-[12px] text-fg-muted">To</p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <span
+              className="grid size-8 place-items-center rounded-full text-[16px]"
+              style={{ background: AVATARS.Dave.bg }}
+              aria-label="Dave"
+            >
+              {AVATARS.Dave.emoji}
+            </span>
+            <p className="text-[16px] text-fg">Dave</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="fade-in">
+        <h2 className="mb-5 text-[18px] font-semibold tracking-tight text-fg">
+          Approvals
+        </h2>
+
+        <ol className="space-y-3">
+          <ApprovalRow
+            person="Alice"
+            label="Proposed the payout"
+            txHash={step4?.txHash}
+            blockNumber={step4?.blockNumber}
+            status={step4?.status}
+          />
+          <ApprovalRow
+            person="Bob"
+            label="Approved. The pot was released."
+            txHash={step5?.txHash}
+            blockNumber={step5?.blockNumber}
+            status={step5?.status}
+          />
+          <ApprovalRow
+            person="Charlie"
+            label={
+              released
+                ? "Did not need to approve. Quorum was already met."
+                : "Optional. The pot moves on the second signature."
+            }
+            status="pending"
+            grayed
+          />
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+function ApprovalRow({
+  person,
+  label,
+  txHash,
+  blockNumber,
+  status,
+  grayed,
+}: {
+  person: MemberName;
+  label: string;
+  txHash?: string;
+  blockNumber?: number;
+  status?: string;
+  grayed?: boolean;
+}) {
+  const explorer = txHash && txHash.startsWith("0x")
+    ? `https://drip-node-production.up.railway.app/?#/explorer/query/${txHash}`
+    : null;
+
+  const avatar = AVATARS[person];
+
+  const phase =
+    status === "confirmed"
+      ? "Signed"
+      : status === "inflight"
+        ? "Signing…"
+        : status === "failed"
+          ? "Failed"
+          : "Not yet";
+
+  const phaseColor =
+    status === "confirmed"
+      ? "text-emerald-soft"
+      : status === "inflight"
+        ? "text-amber"
+        : status === "failed"
+          ? "text-rose"
+          : "text-fg-dim";
 
   return (
-    <div ref={ref}>
-      <PageHeader
-        eyebrow={`request · #${req.id.slice(2)} · ${group.name}`}
-        title={`${req.requester} requested ${req.amount} POT`}
-        description={req.reason}
-        actions={
-          <>
-            <Button href={`/app/groups/${group.id}`} variant="secondary">
-              ← Back to group
-            </Button>
-          </>
-        }
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false}>
-            <div className="flex flex-col gap-2 p-5">
-              <span className="text-[10px] uppercase tracking-wider text-fg-dim">
-                Status
-              </span>
-              <div>
-                <Badge
-                  tone={
-                    req.status === "fast-track"
-                      ? "emerald"
-                      : req.status === "executed"
-                        ? "emerald"
-                        : req.status === "auto-rejected"
-                          ? "neutral"
-                          : "violet"
-                  }
-                >
-                  {req.status}
-                </Badge>
-              </div>
-              <p className="mt-2 text-xs text-fg-muted">
-                Route · {req.prevalidation.route}
-              </p>
-            </div>
-          </GlowCard>
-        </div>
-        <div className="anim-card">
-          <GlowCard glow="emerald" interactive={false}>
-            <div className="flex flex-col gap-2 p-5">
-              <span className="text-[10px] uppercase tracking-wider text-fg-dim">
-                AI confidence
-              </span>
-              <p className="font-mono text-2xl text-emerald-soft">
-                {req.prevalidation.confidence.toFixed(2)}
-              </p>
-              <p className="text-xs text-fg-muted">
-                Verdict · {req.prevalidation.verdict}
-              </p>
-            </div>
-          </GlowCard>
-        </div>
-        <div className="anim-card">
-          <GlowCard glow="cyan" interactive={false}>
-            <div className="flex flex-col gap-2 p-5">
-              <span className="text-[10px] uppercase tracking-wider text-fg-dim">
-                Tally (weighted)
-              </span>
-              <p className="font-mono text-xl text-fg">
-                {approveWeight.toFixed(2)}{" "}
-                <span className="text-fg-muted">/ {totalWeight.toFixed(2)}</span>
-              </p>
-              <p className="text-xs text-fg-muted">
-                {pending} pending votes
-              </p>
-            </div>
-          </GlowCard>
-        </div>
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false}>
-            <div className="flex flex-col gap-2 p-5">
-              <span className="text-[10px] uppercase tracking-wider text-fg-dim">
-                Deadline
-              </span>
-              <div className="flex items-center gap-2">
-                <Clock className="size-4 text-fg-muted" />
-                <p className="font-mono text-base text-fg">11h 42m</p>
-              </div>
-              <p className="text-xs text-fg-muted">
-                {new Date(req.deadline).toLocaleString()}
-              </p>
-            </div>
-          </GlowCard>
-        </div>
+    <li
+      className={`group flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-border bg-[#141414] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] ${
+        grayed ? "opacity-60" : ""
+      }`}
+    >
+      <span
+        className="grid size-10 place-items-center rounded-full text-[20px] shadow-[0_4px_18px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover:scale-[1.05]"
+        style={{ background: avatar.bg }}
+        aria-label={person}
+      >
+        {avatar.emoji}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] text-fg">{person}</p>
+        <p className="text-[12px] text-fg-muted">{label}</p>
       </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {/* Tier 1 */}
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false} className="h-full">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2">
-                <BrainCircuit className="size-4 text-violet-soft" />
-                <h3 className="text-sm font-semibold text-fg">
-                  Tier 1 · Requester Agent verdict
-                </h3>
-              </div>
-              <Badge tone={req.prevalidation.verdict === "PASS" ? "emerald" : "neutral"}>
-                {req.prevalidation.verdict}
-              </Badge>
-            </div>
-            <div className="space-y-5 p-6">
-              <div className="rounded-2xl border border-border bg-bg/40 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-fg-dim">
-                    Confidence
-                  </p>
-                  <p className="font-mono text-sm text-emerald-soft">
-                    {req.prevalidation.confidence.toFixed(2)}
-                  </p>
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet via-cyan to-emerald"
-                    style={{ width: `${req.prevalidation.confidence * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <ul className="space-y-3 text-sm">
-                {req.prevalidation.checks.map((c) => (
-                  <li
-                    key={c.label}
-                    className="flex items-center justify-between gap-4 border-t border-border pt-3 first:border-0 first:pt-0"
-                  >
-                    <div className="flex items-center gap-2 text-fg-muted">
-                      {c.ok ? (
-                        <CircleCheck className="size-4 text-emerald-soft" />
-                      ) : (
-                        <CircleX className="size-4 text-rose" />
-                      )}
-                      <span>{c.label}</span>
-                    </div>
-                    <div className="flex items-baseline gap-3 text-right">
-                      <span className="text-xs text-fg-dim">{c.weight}</span>
-                      <span className="text-fg">{c.value}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex items-center justify-between rounded-2xl border border-violet/20 bg-violet/[0.06] px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-violet-soft" />
-                  <span className="text-sm text-fg-muted">Routing decision</span>
-                </div>
-                <span className="font-mono text-xs text-violet-soft">
-                  {req.prevalidation.route}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl border border-border bg-bg/40 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <FileLock className="size-4 text-fg-muted" />
-                  <span className="text-sm text-fg-muted">Reasoning CID</span>
-                </div>
-                <span className="font-mono text-[11px] text-fg-dim">
-                  {req.prevalidation.reasoningCid}
-                </span>
-              </div>
-            </div>
-          </GlowCard>
-        </div>
-
-        {/* Tier 2 */}
-        <div className="anim-card">
-          <GlowCard glow="emerald" interactive={false} className="h-full">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2">
-                <BrainCircuit className="size-4 text-emerald-soft" />
-                <h3 className="text-sm font-semibold text-fg">
-                  Tier 2 · Reviewer Agents
-                </h3>
-              </div>
-              <span className="text-[11px] text-fg-dim">
-                {req.votes.length} reviewers
-              </span>
-            </div>
-
-            <div className="space-y-4 p-6">
-              {/* Tally bar */}
-              <div className="rounded-2xl border border-border bg-bg/40 p-4">
-                <div className="mb-3 flex items-center justify-between text-xs">
-                  <span className="text-emerald-soft">
-                    Approve · {approvePct.toFixed(0)}%
-                  </span>
-                  <span className="text-rose">
-                    Reject · {rejectPct.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald to-emerald-soft"
-                    style={{ width: `${approvePct}%` }}
-                  />
-                  <div
-                    className="h-full bg-rose"
-                    style={{ width: `${rejectPct}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Reviewer cards */}
-              <ul className="space-y-3">
-                {req.votes.map((v) => (
-                  <li
-                    key={v.reviewer}
-                    className={cn(
-                      "rounded-2xl border bg-bg/40 p-4 transition-colors",
-                      v.verdict === "APPROVE" && "border-emerald/20",
-                      v.verdict === "REJECT" && "border-rose/30",
-                      v.verdict === "PENDING" && "border-dashed border-border"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-violet/30 to-emerald/20 text-xs font-medium text-fg">
-                          {v.reviewer[0]}
-                        </span>
-                        <div className="flex flex-col">
-                          <p className="text-sm font-medium text-fg">
-                            {v.reviewer}
-                          </p>
-                          <p className="text-[11px] text-fg-dim">
-                            weight {v.weight}× · confidence{" "}
-                            {v.confidence.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider",
-                          v.verdict === "APPROVE" &&
-                            "border-emerald/30 bg-emerald/10 text-emerald-soft",
-                          v.verdict === "REJECT" &&
-                            "border-rose/30 bg-rose/10 text-rose",
-                          v.verdict === "PENDING" &&
-                            "border-amber/30 bg-amber/10 text-amber"
-                        )}
-                      >
-                        {v.verdict}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm leading-relaxed text-fg-muted">
-                      {v.reasoning}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Your vote */}
-              {req.status === "fast-track" || req.status === "voting" ? (
-                <div className="space-y-3 rounded-2xl border border-violet/30 bg-violet/[0.06] p-5">
-                  <p className="text-sm font-medium text-fg">Your vote</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMyVote("approve")}
-                      className={cn(
-                        "flex items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-sm transition-colors",
-                        myVote === "approve"
-                          ? "border-emerald/40 bg-emerald/15 text-emerald-soft"
-                          : "border-border bg-bg/40 text-fg-muted hover:border-border-strong hover:text-fg"
-                      )}
-                    >
-                      <ThumbsUp className="size-4" />
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMyVote("reject")}
-                      className={cn(
-                        "flex items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-sm transition-colors",
-                        myVote === "reject"
-                          ? "border-rose/40 bg-rose/15 text-rose"
-                          : "border-border bg-bg/40 text-fg-muted hover:border-border-strong hover:text-fg"
-                      )}
-                    >
-                      <ThumbsDown className="size-4" />
-                      Reject
-                    </button>
-                    <button
-                      type="button"
-                      className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-bg/40 px-3 py-2.5 text-sm text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
-                    >
-                      <Flag className="size-4" />
-                      Challenge
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-fg-dim">
-                    Your vote uses weight {1.18}× · committed to VotingEngine on submit.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </GlowCard>
-        </div>
+      <div className="flex items-center gap-3 text-[12px]">
+        {txHash && (
+          <a
+            href={explorer ?? "#"}
+            target={explorer ? "_blank" : undefined}
+            rel={explorer ? "noreferrer" : undefined}
+            className="tabular-nums text-fg-muted underline decoration-fg-dim underline-offset-4 hover:text-fg"
+            style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
+          >
+            {shortHash(txHash, 6, 4)}
+          </a>
+        )}
+        {blockNumber ? (
+          <span
+            className="tabular-nums text-fg-dim"
+            style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
+          >
+            #{blockNumber}
+          </span>
+        ) : null}
+        <span className={phaseColor}>{phase}</span>
       </div>
-    </div>
+    </li>
   );
 }

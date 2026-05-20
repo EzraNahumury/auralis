@@ -1,209 +1,131 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { useGSAP } from "@gsap/react";
-import { Award, Copy } from "lucide-react";
 import { gsap, registerGsap } from "@/lib/gsap";
-import { me, deposits, activity } from "@/lib/mock";
-import { PageHeader } from "@/components/app/page-header";
-import { GlowCard } from "@/components/ui/glow-card";
-import { Badge } from "@/components/ui/badge";
+import { useChain } from "@/components/providers/chain-provider";
+import { shortHash } from "@/lib/chain/proof";
+import { AnimatedNumber } from "@/components/app/animated-number";
+import { AVATARS } from "@/lib/avatars";
 
-export default function ProfilePage() {
+const badges = [
+  { name: "Group founder", note: "Founded RT 03 in May 2026." },
+  { name: "On-time payer", note: "Paid all 3 deposits this round." },
+  { name: "Dispute-free", note: "No challenges raised on you." },
+];
+
+export default function Profile() {
   const ref = useRef<HTMLDivElement>(null);
+  const { proof } = useChain();
+  const address = proof?.participants.alice ?? "5GrwvaEF…";
 
   useGSAP(
     () => {
       registerGsap();
+      if (!ref.current) return;
       gsap.fromTo(
-        ".anim-card",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, stagger: 0.07, duration: 0.7, ease: "expo.out" }
-      );
-
-      gsap.fromTo(
-        ".rep-bar",
-        { width: 0 },
-        { width: `${(me.reputation / 1000) * 100}%`, duration: 1.4, ease: "expo.out" }
+        ref.current.querySelectorAll(".fade-in"),
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, stagger: 0.09, duration: 0.8, ease: "expo.out" }
       );
     },
     { scope: ref }
   );
 
   return (
-    <div ref={ref}>
-      <PageHeader
-        eyebrow="My profile"
-        title={`${me.name} · ${me.tier} tier`}
-        description="Reputation is portable across every Auralis group on Portaldot. Soulbound badges and onchain history follow you."
-      />
+    <div ref={ref} className="flex flex-col gap-14">
+      <header className="fade-in flex items-center gap-5">
+        <span
+          className="grid size-16 place-items-center rounded-full text-[36px] shadow-[0_8px_28px_rgba(74,59,205,0.35)]"
+          style={{ background: AVATARS.Alice.bg }}
+          aria-label="Alice"
+        >
+          {AVATARS.Alice.emoji}
+        </span>
+        <div>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg sm:text-[32px]">
+            Alice
+          </h1>
+          <p className="mt-1 text-[13px] text-fg-muted">
+            Founder of Arisan Tetangga RT 03
+          </p>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(address)}
+            className="mt-2 text-[11px] text-fg-dim transition-colors hover:text-fg"
+            title="Copy address"
+            style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}
+          >
+            {shortHash(address, 6, 4)}
+          </button>
+        </div>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false}>
-            <div className="flex flex-col gap-6 p-7">
-              <div className="flex items-center gap-4">
-                <span className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-violet/40 to-emerald/30 text-2xl font-medium text-fg ring-2 ring-violet/30">
-                  {me.name[0]}
-                </span>
-                <div className="flex-1">
-                  <p className="text-xl font-semibold text-fg">{me.name}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="font-mono text-xs text-fg-muted">
-                      {me.address.slice(0, 12)}…{me.address.slice(-6)}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Copy address"
-                      className="text-fg-dim transition-colors hover:text-fg"
-                    >
-                      <Copy className="size-3.5" />
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-fg-dim">
-                    Joined Auralis · {me.joinedAt}
-                  </p>
-                </div>
+      <section className="fade-in">
+        <div className="grid gap-y-8 gap-x-12 sm:grid-cols-3">
+          <div>
+            <p className="text-[12px] text-fg-muted">Trust score</p>
+            <p className="mt-1.5 text-[44px] font-medium leading-none tabular-nums text-fg">
+              <AnimatedNumber value={887} duration={1600} />
+            </p>
+            <p className="mt-2 text-[12px] text-fg-dim">
+              Out of 1,000. Platinum tier.
+            </p>
+          </div>
+          <div>
+            <p className="text-[12px] text-fg-muted">Your vote counts as</p>
+            <p className="mt-1.5 text-[44px] font-medium leading-none tabular-nums text-fg">
+              <AnimatedNumber value={1.39} duration={1600} format="decimal" />
+              <span className="text-[18px] text-fg-muted">×</span>
+            </p>
+            <p className="mt-2 text-[12px] text-fg-dim">
+              Higher than the base because of your badges.
+            </p>
+          </div>
+          <div>
+            <p className="text-[12px] text-fg-muted">Groups active</p>
+            <p className="mt-1.5 text-[44px] font-medium leading-none tabular-nums text-fg">
+              <AnimatedNumber value={1} duration={900} />
+            </p>
+            <p className="mt-2 text-[12px] text-fg-dim">
+              <Link
+                href="/app/groups/g_rt03"
+                className="underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
+              >
+                Arisan Tetangga RT 03
+              </Link>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="fade-in">
+        <h2 className="mb-5 text-[18px] font-semibold tracking-tight text-fg">
+          Badges
+        </h2>
+        <ul className="divide-y divide-border border-y border-border">
+          {badges.map((b) => (
+            <li
+              key={b.name}
+              className="group flex items-baseline gap-5 px-2 py-4 transition-all duration-300 hover:translate-x-0.5 hover:bg-white/[0.02]"
+            >
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-fg-muted transition-all duration-300 group-hover:bg-fg group-hover:shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+                aria-hidden
+              />
+              <div className="flex-1">
+                <p className="text-[14px] text-fg">{b.name}</p>
+                <p className="mt-0.5 text-[12px] text-fg-muted">{b.note}</p>
               </div>
-
-              <div className="rounded-2xl border border-border bg-bg/40 p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-fg-dim">
-                    Reputation
-                  </p>
-                  <p className="font-mono text-3xl text-fg">{me.reputation}</p>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                  <div className="rep-bar h-full rounded-full bg-gradient-to-r from-violet via-cyan to-emerald" />
-                </div>
-                <div className="mt-3 flex items-center justify-between text-[11px] text-fg-dim">
-                  <span>0</span>
-                  <span>500</span>
-                  <span>1000</span>
-                </div>
-              </div>
-
-              <dl className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border bg-bg/40 p-3 text-center">
-                  <dt className="text-[10px] uppercase tracking-wider text-fg-dim">
-                    Vote weight
-                  </dt>
-                  <dd className="mt-1 font-mono text-lg text-fg">
-                    {me.voteWeight}×
-                  </dd>
-                </div>
-                <div className="rounded-xl border border-border bg-bg/40 p-3 text-center">
-                  <dt className="text-[10px] uppercase tracking-wider text-fg-dim">
-                    Consistency
-                  </dt>
-                  <dd className="mt-1 font-mono text-lg text-fg">
-                    {me.depositConsistency}%
-                  </dd>
-                </div>
-                <div className="rounded-xl border border-border bg-bg/40 p-3 text-center">
-                  <dt className="text-[10px] uppercase tracking-wider text-fg-dim">
-                    Active groups
-                  </dt>
-                  <dd className="mt-1 font-mono text-lg text-fg">
-                    {me.groupsActive}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </GlowCard>
-        </div>
-
-        <div className="anim-card">
-          <GlowCard glow="emerald" interactive={false} className="h-full">
-            <div className="border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2">
-                <Award className="size-4 text-emerald-soft" />
-                <h3 className="text-sm font-semibold text-fg">Soulbound badges</h3>
-              </div>
-            </div>
-            <ul className="divide-y divide-border">
-              {me.badges.map((b) => (
-                <li
-                  key={b}
-                  className="flex items-center justify-between gap-4 px-6 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <span aria-hidden className="grid size-9 place-items-center rounded-full ring-conic">
-                      <span className="size-6 rounded-full bg-bg" />
-                    </span>
-                    <p className="text-sm font-medium text-fg">{b}</p>
-                  </div>
-                  <Badge tone="emerald">Soulbound</Badge>
-                </li>
-              ))}
-              <li className="flex items-center justify-between gap-4 border-t border-dashed border-border px-6 py-4 text-fg-muted">
-                <div className="flex items-center gap-3">
-                  <span className="grid size-9 place-items-center rounded-full border border-dashed border-border text-fg-dim">
-                    +
-                  </span>
-                  <p className="text-sm">Next badge · Dispute-Free (3 months in)</p>
-                </div>
-                <span className="text-xs text-fg-dim">3 / 6 months</span>
-              </li>
-            </ul>
-          </GlowCard>
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false}>
-            <div className="border-b border-border px-6 py-4">
-              <h3 className="text-sm font-semibold text-fg">Recent activity</h3>
-            </div>
-            <ul className="divide-y divide-border">
-              {activity.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-start justify-between gap-4 px-6 py-4"
-                >
-                  <div>
-                    <p className="text-sm text-fg">
-                      <span className="font-medium">{a.actor}</span>{" "}
-                      <span className="text-fg-muted">{a.summary}</span>
-                    </p>
-                    <p className="mt-1 text-[11px] text-fg-dim">{a.timestamp}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </GlowCard>
-        </div>
-
-        <div className="anim-card">
-          <GlowCard glow="cyan" interactive={false}>
-            <div className="border-b border-border px-6 py-4">
-              <h3 className="text-sm font-semibold text-fg">Deposit history</h3>
-            </div>
-            <ul className="divide-y divide-border">
-              {deposits
-                .filter((d) => d.member === me.name)
-                .map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex items-center justify-between gap-4 px-6 py-3 text-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="size-2 rounded-full bg-emerald" />
-                      <span className="text-fg">Round {d.round}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-mono text-xs text-fg-muted">
-                        {d.amount} POT
-                      </span>
-                      <span className="text-xs text-fg-dim">{d.timestamp}</span>
-                    </div>
-                  </li>
-                ))}
-            </ul>
-          </GlowCard>
-        </div>
-      </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[12px] text-fg-dim">
+          Badges are tied to your address. They follow you to other Auralis
+          groups.
+        </p>
+      </section>
     </div>
   );
 }

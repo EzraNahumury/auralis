@@ -1,17 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRef } from "react";
+import Link from "next/link";
 import { useGSAP } from "@gsap/react";
-import { Users, Wallet, Calendar, ArrowUpRight } from "lucide-react";
 import { gsap, registerGsap } from "@/lib/gsap";
-import { groups } from "@/lib/mock";
-import { PageHeader } from "@/components/app/page-header";
-import { GlowCard } from "@/components/ui/glow-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
-export default function GroupsPage() {
+export default function Groups() {
   const ref = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -19,81 +13,57 @@ export default function GroupsPage() {
       registerGsap();
       if (!ref.current) return;
       gsap.fromTo(
-        ref.current.querySelectorAll(".group-card"),
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, stagger: 0.07, duration: 0.7, ease: "expo.out" }
+        ref.current.querySelectorAll(".fade-in"),
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, stagger: 0.08, duration: 0.7, ease: "expo.out" }
       );
     },
     { scope: ref }
   );
 
   return (
-    <div ref={ref}>
-      <PageHeader
-        eyebrow="Groups"
-        title="Every Arisan you're part of."
-        description="Each group is an independent ink! contract on Portaldot. Reputation moves with you across all of them."
-        actions={
-          <Button href="/app/groups/new" withArrow>
-            New group
-          </Button>
-        }
-      />
+    <div ref={ref} className="flex flex-col gap-12">
+      <header className="fade-in">
+        <h1 className="text-[34px] font-semibold leading-tight tracking-tight text-fg sm:text-[40px]">
+          Your groups
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-fg-muted">
+          You&rsquo;re part of one Arisan group right now. Tap it to open the
+          round, or start a new one.
+        </p>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {groups.map((g) => (
-          <div key={g.id} className="group-card">
-            <Link href={`/app/groups/${g.id}`} className="block h-full">
-              <GlowCard glow="violet" className="h-full">
-                <div className="flex h-full flex-col gap-5 p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex flex-col gap-2">
-                      <Badge tone={g.status === "active" ? "emerald" : "neutral"}>
-                        {g.status}
-                      </Badge>
-                      <h3 className="text-lg font-semibold tracking-tight text-fg">
-                        {g.name}
-                      </h3>
-                      <p className="text-xs text-fg-muted">{g.description}</p>
-                    </div>
-                    <ArrowUpRight className="size-4 text-fg-dim transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/40 px-3 py-2">
-                      <Users className="size-3.5 text-fg-dim" />
-                      <span className="text-fg-muted">{g.membersCount} members</span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/40 px-3 py-2">
-                      <Wallet className="size-3.5 text-fg-dim" />
-                      <span className="font-mono text-fg-muted">
-                        {g.treasuryBalance} POT
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/40 px-3 py-2">
-                      <Calendar className="size-3.5 text-fg-dim" />
-                      <span className="text-fg-muted">
-                        Round {g.currentRound}/{g.totalRounds}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/40 px-3 py-2">
-                      <span className="text-fg-dim">Iuran</span>
-                      <span className="font-mono text-fg-muted">
-                        {g.contributionAmount} POT
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between border-t border-border pt-4 text-xs text-fg-dim">
-                    <span>Next round · {g.nextRoundAt}</span>
-                    <span className="font-mono">{g.id}</span>
-                  </div>
-                </div>
-              </GlowCard>
-            </Link>
+      <section className="fade-in flex flex-col gap-3">
+        <Link
+          href="/app/groups/g_rt03"
+          className="group rounded-2xl border border-border bg-[#141414] px-6 py-6 transition-colors hover:border-fg-dim"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[12px] text-fg-muted">Active</p>
+              <p className="mt-1 text-[20px] font-semibold tracking-tight text-fg">
+                Arisan Tetangga RT 03
+              </p>
+              <p className="mt-1 text-[13px] text-fg-muted">
+                3 members · Dave receives this round
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[26px] font-medium tabular-nums text-fg">
+                300 <span className="text-[14px] text-fg-muted">POT</span>
+              </p>
+              <p className="text-[12px] text-fg-dim">100 POT × 3</p>
+            </div>
           </div>
-        ))}
-      </div>
+        </Link>
+
+        <Link
+          href="/app/groups/new"
+          className="rounded-2xl border border-dashed border-border px-6 py-6 text-[14px] text-fg-muted transition-colors hover:border-fg-dim hover:text-fg"
+        >
+          Start a new group
+        </Link>
+      </section>
     </div>
   );
 }

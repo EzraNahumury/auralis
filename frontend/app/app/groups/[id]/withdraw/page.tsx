@@ -1,210 +1,146 @@
 "use client";
 
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import { useGSAP } from "@gsap/react";
-import { notFound } from "next/navigation";
-import { BrainCircuit, Sparkles, ShieldAlert } from "lucide-react";
 import { gsap, registerGsap } from "@/lib/gsap";
-import { getGroup, me } from "@/lib/mock";
-import { PageHeader } from "@/components/app/page-header";
-import { GlowCard } from "@/components/ui/glow-card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useChain } from "@/components/providers/chain-provider";
+import { AVATARS } from "@/lib/avatars";
 
-const inputClass =
-  "w-full rounded-2xl border border-border bg-bg/40 px-4 py-3 text-sm text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-violet/50 focus:bg-bg/60";
+const inputBase =
+  "w-full rounded-xl border border-border bg-transparent px-4 py-3 text-[14px] text-fg outline-none transition-colors placeholder:text-fg-dim focus:border-fg-muted";
 
-export default function WithdrawPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const group = getGroup(id);
+export default function SendPage() {
   const ref = useRef<HTMLDivElement>(null);
-  const [amount, setAmount] = useState("500");
-  const [reason, setReason] = useState("");
-  const [category, setCategory] = useState<"scheduled" | "emergency" | "early">(
-    "scheduled"
-  );
+  const { mode, setMode, runLive, running, liveError } = useChain();
+  const [amount, setAmount] = useState("300");
+  const [note, setNote] = useState("Round 1 recipient — Dave.");
 
   useGSAP(
     () => {
       registerGsap();
+      if (!ref.current) return;
       gsap.fromTo(
-        ".anim-card",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, stagger: 0.08, duration: 0.7, ease: "expo.out" }
+        ref.current.querySelectorAll(".fade-in"),
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, stagger: 0.07, duration: 0.7, ease: "expo.out" }
       );
     },
     { scope: ref }
   );
 
-  if (!group) notFound();
-
-  // Mock confidence estimate based on reason length + category + member reputation
-  const reasonScore = Math.min(1, reason.length / 80);
-  const categoryScore = category === "emergency" ? 0.85 : category === "scheduled" ? 0.95 : 0.55;
-  const repScore = me.reputation / 1000;
-  const estimatedConfidence = Math.min(
-    0.99,
-    0.4 + reasonScore * 0.2 + categoryScore * 0.2 + repScore * 0.2
-  );
-
-  const route =
-    estimatedConfidence >= 0.85
-      ? "HYBRID_FAST_TRACK"
-      : estimatedConfidence >= 0.5
-        ? "NORMAL"
-        : "AUTO_REJECT";
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode !== "live") setMode("live");
+    runLive();
+  };
 
   return (
-    <div ref={ref}>
-      <PageHeader
-        eyebrow={`group · ${group.name}`}
-        title="Request a withdrawal."
-        description="The Requester Agent pre-validates your request before opening the vote. Your reputation and history are queried directly from Portaldot."
-      />
+    <div ref={ref} className="flex flex-col gap-12">
+      <header className="fade-in">
+        <Link
+          href="/app/groups/g_rt03"
+          className="text-[12px] text-fg-dim underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
+        >
+          ← Group
+        </Link>
+        <h1 className="mt-5 text-[34px] font-semibold leading-tight tracking-tight text-fg sm:text-[40px]">
+          Send the pot to Dave
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-fg-muted">
+          You&rsquo;re proposing the payout for Round 1. Bob still needs to
+          approve before the pot moves — that&rsquo;s how the 2 of 3 rule keeps
+          things honest.
+        </p>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="anim-card">
-          <GlowCard glow="violet" interactive={false}>
-            <div className="border-b border-border px-6 py-4">
-              <h3 className="text-sm font-semibold text-fg">Withdrawal details</h3>
+      <form onSubmit={submit} className="fade-in flex flex-col gap-7">
+        <div>
+          <label className="block text-[13px] text-fg-muted">Recipient</label>
+          <div className="mt-2 flex items-center gap-3 rounded-xl border border-border bg-[#141414] px-4 py-3.5">
+            <span
+              className="grid size-10 place-items-center rounded-full text-[20px]"
+              style={{ background: AVATARS.Dave.bg }}
+              aria-label="Dave"
+            >
+              {AVATARS.Dave.emoji}
+            </span>
+            <div className="flex-1">
+              <p className="text-[14px] text-fg">Dave</p>
+              <p className="text-[12px] text-fg-dim">Round 1 recipient</p>
             </div>
-            <div className="space-y-6 p-6">
-              <label className="flex flex-col gap-2 text-xs uppercase tracking-wider text-fg-dim">
-                Amount (POT)
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className={inputClass}
-                />
-              </label>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-xs uppercase tracking-wider text-fg-dim">
-                  Category
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["scheduled", "emergency", "early"] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setCategory(c)}
-                      className={
-                        category === c
-                          ? "rounded-2xl border border-violet/40 bg-violet/15 px-3 py-3 text-sm font-medium text-fg"
-                          : "rounded-2xl border border-border bg-bg/40 px-3 py-3 text-sm text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
-                      }
-                    >
-                      {c[0].toUpperCase() + c.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <label className="flex flex-col gap-2 text-xs uppercase tracking-wider text-fg-dim">
-                Reason (committed onchain as hash)
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={5}
-                  placeholder="Describe the context. The Requester Agent uses this to gauge plausibility — longer, specific reasons score higher."
-                  className={inputClass}
-                />
-                <span className="text-[10px] normal-case text-fg-dim">
-                  {reason.length} chars · only the hash + summary are stored onchain
-                </span>
-              </label>
-
-              <div className="rounded-2xl border border-amber/20 bg-amber/[0.05] p-4 text-xs text-amber">
-                <div className="flex items-start gap-2">
-                  <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-                  <span>
-                    Vague or absent reasons score below 50% and trigger AUTO_REJECT. Lying
-                    permanently lowers reputation across every Auralis group.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end border-t border-border pt-5">
-                <Button
-                  href={`/app/groups/${group.id}/requests/r_038`}
-                  withArrow
-                >
-                  Submit to chain
-                </Button>
-              </div>
-            </div>
-          </GlowCard>
+            <span className="text-[11px] text-fg-dim">Locked for this demo</span>
+          </div>
         </div>
 
-        <div className="anim-card">
-          <GlowCard glow="emerald" interactive={false} className="h-full">
-            <div className="flex h-full flex-col gap-5 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BrainCircuit className="size-4 text-emerald-soft" />
-                  <h3 className="text-sm font-semibold text-fg">
-                    Live confidence preview
-                  </h3>
-                </div>
-                <Badge tone="emerald">simulated</Badge>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-bg/40 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-fg-dim">
-                    Estimated confidence
-                  </p>
-                  <p className="font-mono text-lg text-emerald-soft">
-                    {estimatedConfidence.toFixed(2)}
-                  </p>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet via-cyan to-emerald transition-[width] duration-500"
-                    style={{ width: `${estimatedConfidence * 100}%` }}
-                  />
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-fg-muted">
-                  <Sparkles className="size-3.5 text-violet-soft" />
-                  <span>
-                    Route ·{" "}
-                    <span className="font-mono text-fg">{route}</span>
-                  </span>
-                </div>
-              </div>
-
-              <ul className="flex flex-col gap-3 text-sm text-fg-muted">
-                <li className="flex items-center justify-between">
-                  <span>Reputation</span>
-                  <span className="font-mono text-fg">{me.reputation}</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span>Deposit consistency</span>
-                  <span className="font-mono text-fg">{me.depositConsistency}%</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span>Cross-group history</span>
-                  <span className="font-mono text-fg">{me.groupsActive} groups</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span>Vote weight</span>
-                  <span className="font-mono text-fg">{me.voteWeight}×</span>
-                </li>
-              </ul>
-
-              <p className="mt-auto rounded-2xl border border-border bg-bg/40 p-4 text-xs leading-relaxed text-fg-dim">
-                Estimate is local-only — the on-chain Requester Agent recomputes confidence
-                from authoritative sources before opening the vote.
-              </p>
-            </div>
-          </GlowCard>
+        <div>
+          <label htmlFor="amount" className="block text-[13px] text-fg-muted">
+            Amount
+          </label>
+          <div className="mt-2 flex items-center gap-3">
+            <input
+              id="amount"
+              type="number"
+              min="1"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className={inputBase + " tabular-nums text-[18px]"}
+            />
+            <span className="shrink-0 text-[14px] text-fg-muted">POT</span>
+          </div>
+          <p className="mt-1.5 text-[12px] text-fg-dim">
+            Pot collected this round: 300 POT
+          </p>
         </div>
-      </div>
+
+        <div>
+          <label htmlFor="note" className="block text-[13px] text-fg-muted">
+            Reason
+          </label>
+          <textarea
+            id="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            className={inputBase + " mt-2 resize-none"}
+          />
+          <p className="mt-1.5 text-[12px] text-fg-dim">
+            A short reason goes with the proposal so reviewers know what
+            they&rsquo;re approving.
+          </p>
+        </div>
+
+        {liveError && (
+          <p className="text-[13px] text-rose">
+            {liveError}
+          </p>
+        )}
+
+        <div className="flex items-center gap-4 pt-2">
+          <button
+            type="submit"
+            disabled={running}
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-[14px] font-medium text-bg transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {running ? "Broadcasting…" : "Propose payout"}
+          </button>
+          <Link
+            href="/app/groups/g_rt03"
+            className="text-[12px] text-fg-muted underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
+          >
+            Cancel
+          </Link>
+        </div>
+      </form>
+
+      <section className="fade-in text-[13px] leading-relaxed text-fg-muted">
+        <p>
+          When you press <span className="text-fg">Propose payout</span>, the
+          app sends five transactions in order: three deposits (Alice, Bob,
+          Charlie), then your proposal, then Bob&rsquo;s approval. Bob&rsquo;s
+          approval is what releases the pot.
+        </p>
+      </section>
     </div>
   );
 }

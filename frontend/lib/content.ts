@@ -1,11 +1,10 @@
 export const nav = {
   brand: "Auralis",
   links: [
-    { label: "Problem", href: "#problem" },
-    { label: "Solution", href: "#solution" },
-    { label: "Workflow", href: "#workflow" },
-    { label: "Reputation", href: "#reputation" },
-    { label: "Demo", href: "#preview" },
+    { label: "Workflow", href: "#how" },
+    { label: "Features", href: "#capabilities" },
+    { label: "FAQ", href: "#faq" },
+    { label: "Academy", href: "#academy" },
   ],
   cta: { label: "Launch app", href: "/app" },
 };
