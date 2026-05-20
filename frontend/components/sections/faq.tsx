@@ -177,52 +177,52 @@ export function FAQ() {
                 </span>
               </h2>
 
-              <div className="mx-auto mt-10 flex w-full max-w-[880px] flex-col lg:mt-12">
-                <div className="faq-list space-y-3 pr-1">
+              <div className="mx-auto mt-10 flex w-full max-w-[1120px] flex-col lg:mt-12">
+                <div className="faq-list space-y-3 pr-1 sm:space-y-3.5">
                   {faq.items.map((item, i) => {
                     const isOpen = openIdx === i;
                     return (
                       <div
                         key={item.q}
-                        className={`faq-item rounded-[28px] transition-colors ${
+                        className={`faq-item transition-colors ${
                           isOpen
-                            ? "bg-[#0a0a0a]/[0.05]"
-                            : "bg-[#0a0a0a]/[0.04] hover:bg-[#0a0a0a]/[0.06]"
+                            ? "rounded-[36px] bg-[#0a0a0a]/[0.05]"
+                            : "rounded-full bg-[#0a0a0a]/[0.04] hover:bg-[#0a0a0a]/[0.06]"
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => setOpenIdx(isOpen ? null : i)}
                           aria-expanded={isOpen}
-                          className="flex w-full items-center justify-between gap-4 rounded-[28px] px-6 py-3.5 text-left sm:px-7 sm:py-4"
+                          className="flex w-full items-center justify-between gap-5 rounded-full px-7 py-4 text-left sm:px-9 sm:py-5"
                         >
                           <span
-                            className="text-[14px] font-medium leading-snug text-[#0a0a0a] sm:text-[15px] lg:text-base"
+                            className="text-base font-medium leading-snug text-[#0a0a0a] sm:text-lg lg:text-xl"
                             style={{
                               fontFamily:
-                                "var(--font-geist-sans), ui-sans-serif, system-ui",
+                                "var(--font-tech), ui-sans-serif, system-ui",
                             }}
                           >
                             {i + 1}. {item.q}
                           </span>
                           <span
                             aria-hidden
-                            className="grid size-9 shrink-0 place-items-center rounded-full text-white shadow-[0_-4px_8px_rgba(255,255,255,0.25)_inset]"
+                            className="grid size-11 shrink-0 place-items-center rounded-full text-white shadow-[0_-4px_8px_rgba(255,255,255,0.25)_inset] sm:size-12"
                             style={{ background: "var(--gradient-brand)" }}
                           >
                             {isOpen ? (
-                              <Minus className="size-3.5" />
+                              <Minus className="size-4" />
                             ) : (
-                              <Plus className="size-3.5" />
+                              <Plus className="size-4" />
                             )}
                           </span>
                         </button>
                         {isOpen && (
                           <div
-                            className="px-6 pb-4 pt-0 text-[13px] leading-relaxed text-[#0a0a0a]/70 sm:px-7 sm:pb-5 sm:text-sm"
+                            className="px-7 pb-5 pt-1 text-sm leading-relaxed text-[#0a0a0a]/70 sm:px-9 sm:pb-6 sm:text-[15px] lg:text-base"
                             style={{
                               fontFamily:
-                                "var(--font-geist-sans), ui-sans-serif, system-ui",
+                                "var(--font-tech), ui-sans-serif, system-ui",
                             }}
                           >
                             {item.a}
