@@ -7,11 +7,14 @@ import { gsap, registerGsap } from "@/lib/gsap";
 import { useChain } from "@/components/providers/chain-provider";
 import { MemberRow } from "@/components/app/member-row";
 import { Timeline } from "@/components/app/timeline";
+import { AIVerdict } from "@/components/app/ai-verdict";
+import { ReviewerVotes } from "@/components/app/reviewer-votes";
+import { LiveLog } from "@/components/app/live-log";
 import { shortHash } from "@/lib/chain/proof";
 
 export default function GroupPage() {
   const ref = useRef<HTMLDivElement>(null);
-  const { steps, mode, setMode, runLive, running, proof } = useChain();
+  const { steps, mode, setMode, runLive, running, proof, liveError } = useChain();
   const live = mode === "live";
   const done = steps.every((s) => s.status === "confirmed");
 
@@ -21,8 +24,8 @@ export default function GroupPage() {
       if (!ref.current) return;
       gsap.fromTo(
         ref.current.querySelectorAll(".fade-in"),
-        { opacity: 0, y: 14 },
-        { opacity: 1, y: 0, stagger: 0.07, duration: 0.7, ease: "expo.out" }
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, stagger: 0.08, duration: 0.8, ease: "expo.out" }
       );
     },
     { scope: ref }
@@ -41,9 +44,9 @@ export default function GroupPage() {
           Arisan Tetangga RT 03
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-fg-muted">
-          A small neighborhood Arisan with three contributors. Each round the
-          pot rotates to a different member. You can either replay the round
-          that already ran on Portaldot dev, or sign new transactions yourself.
+          Small neighborhood Arisan, three contributors. Each round the pot
+          rotates to a different member. The AI agents review the request
+          first; the chain then enforces the verdict.
         </p>
 
         <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -56,15 +59,18 @@ export default function GroupPage() {
             disabled={running}
             className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-[13px] font-medium text-bg transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {running ? "Running…" : done ? "Run again" : "Run on chain"}
+            {running ? "Running on chain…" : done ? "Run again" : "Run the round on chain"}
           </button>
           <button
             type="button"
             onClick={() => setMode(live ? "recorded" : "live")}
             className="text-[12px] text-fg-muted underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
           >
-            {live ? "Show recorded run" : "Try with recorded run"}
+            {live ? "Show recorded run" : "Use recorded run"}
           </button>
+          {liveError && (
+            <p className="basis-full text-[12px] text-rose">{liveError}</p>
+          )}
         </div>
       </header>
 
@@ -96,15 +102,54 @@ export default function GroupPage() {
         <MemberRow />
       </section>
 
-      <section className="fade-in">
-        <h2 className="mb-5 text-[18px] font-semibold tracking-tight text-fg">
-          Round 1 timeline
-        </h2>
+      <section className="fade-in flex flex-col gap-8">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-fg-dim">
+            Phase 1 — Pre-validation
+          </p>
+          <h2 className="mt-1.5 text-[18px] font-semibold tracking-tight text-fg">
+            The AI reviews the request first.
+          </h2>
+        </div>
+        <AIVerdict />
+      </section>
 
+      <section className="fade-in flex flex-col gap-8">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-fg-dim">
+            Phase 2 — Member votes
+          </p>
+          <h2 className="mt-1.5 text-[18px] font-semibold tracking-tight text-fg">
+            Each member&rsquo;s agent casts a weighted ballot.
+          </h2>
+        </div>
+        <ReviewerVotes />
+      </section>
+
+      <section className="fade-in flex flex-col gap-8">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-fg-dim">
+              Phase 3 — On chain
+            </p>
+            <h2 className="mt-1.5 text-[18px] font-semibold tracking-tight text-fg">
+              The companion script signs five transactions on Portaldot.
+            </h2>
+          </div>
+          <a
+            href="/tx-proof.json"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[12px] text-fg-muted underline decoration-fg-dim underline-offset-4 transition-colors hover:text-fg"
+          >
+            Download proof
+          </a>
+        </div>
         <Timeline />
+        <LiveLog />
 
         {proof && (
-          <p className="mt-4 text-[12px] text-fg-dim">
+          <p className="text-[12px] text-fg-dim">
             Multisig{" "}
             <code
               className="tabular-nums text-fg-muted"
@@ -112,16 +157,7 @@ export default function GroupPage() {
             >
               {shortHash(proof.participants.multisig, 8, 6)}
             </code>{" "}
-            on {proof.network.chainName}.{" "}
-            <a
-              href="/tx-proof.json"
-              target="_blank"
-              rel="noreferrer"
-              className="underline decoration-fg-dim underline-offset-4 hover:text-fg"
-            >
-              Download proof
-            </a>
-            .
+            on {proof.network.chainName}.
           </p>
         )}
       </section>
