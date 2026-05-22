@@ -1,0 +1,10 @@
+# Auralis BE — off-chain LLM simulation
+#
+# Minimal deps for a self-contained Python demo of the Requester + Reviewer
+# agent reasoning, mirroring the Ollama-based pattern used by the frontend
+# (see frontend/lib/ai/*).
+
+requests>=2.31.0       # Ollama HTTP API client
+pydantic>=2.5.0        # typed schemas (mirror frontend/lib/ai/schemas.ts)
+python-dotenv>=1.0.0   # load OLLAMA_HOST / OLLAMA_MODEL from .env
+rich>=13.7.0           # pretty terminal output for the simulation report

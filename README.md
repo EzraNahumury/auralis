@@ -671,14 +671,21 @@ auralis/
 │   ├── treasury/
 │   ├── agent_registry/         # ← onchain agent↔user binding + voting policy
 │   └── rust-toolchain.toml     # Pinned to Rust 1.85 (cargo-contract 5.0.3 compatible)
-├── agents/                     # Off-chain AI agents (Python, substrate-interface) — TO BUILD
-│   ├── orchestrator/           # Event listener + agent router daemon
-│   ├── requester_agent/        # Pre-validation logic (shared system agent)
-│   ├── reviewer_agent/         # Per-member reviewer (one instance per voter)
-│   ├── portaldot_client/       # substrate-interface wrapper for Portaldot
-│   ├── shared/                 # IPFS helpers, config, logging
-│   ├── pyproject.toml
-│   └── requirements.txt
+├── agents/                     # Off-chain AI agents (Python)
+│   └── simulation/             # ✅ DONE — Ollama-based Requester + Reviewer end-to-end demo
+│       ├── run_simulation.py   #   entry point: 1 request → 3 reviewer votes → markdown report
+│       ├── requester_agent.py  #   pre-validation logic
+│       ├── reviewer_agent.py   #   per-policy voter
+│       ├── prompts.py          #   mirrors frontend/lib/ai/prompts.ts
+│       ├── schemas.py          #   pydantic models
+│       ├── ollama_client.py    #   minimal HTTP client (same as frontend's)
+│       └── README.md           #   how to install + run
+│   # Below — POST-API-UPGRADE PHASE 2 (not in scope for hackathon submission):
+│   # ├── orchestrator/         # Event listener + agent router daemon
+│   # ├── portaldot_client/     # substrate-interface wrapper
+│   # ├── shared/               # IPFS helpers, config, logging
+│   # ├── pyproject.toml
+│   # └── requirements.txt
 ├── indexer/                    # Portaldot event indexer (Python) — TO BUILD (lower priority, see §14.5)
 ├── frontend/                   # Next.js frontend (in progress separately)
 │   ├── app/
