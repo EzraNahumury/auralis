@@ -1,20 +1,51 @@
 "use client";
 
-import { useCountUp } from "@/lib/use-count-up";
+import { useEffect, useRef, useState } from "react";
 
-export function AnimatedNumber({
-  value,
-  duration = 1400,
-  format = "integer",
-  className,
-}: {
+interface Props {
   value: number;
   duration?: number;
   format?: "integer" | "decimal";
-  className?: string;
-}) {
-  const v = useCountUp(value, duration);
-  const display =
-    format === "decimal" ? v.toFixed(2) : Math.round(v).toLocaleString();
-  return <span className={className}>{display}</span>;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+export function AnimatedNumber({
+  value,
+  duration = 900,
+  format = "integer",
+}: Props) {
+  const [display, setDisplay] = useState(0);
+  const fromRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = easeOutCubic(t);
+      const v = from + (to - from) * eased;
+      setDisplay(v);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = to;
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value, duration]);
+
+  if (format === "decimal") {
+    return <>{display.toFixed(2)}</>;
+  }
+  return <>{Math.round(display).toLocaleString()}</>;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useChain } from "@/components/providers/chain-provider";
+import type { RequesterOutput } from "@/lib/ai/schemas";
 import { AnimatedNumber } from "./animated-number";
 
 function routingLabel(r: string) {
@@ -16,23 +16,26 @@ function routingTone(r: string): "emerald" | "amber" | "rose" {
   return "rose";
 }
 
-export function AIVerdict() {
-  const { requesterVerdict, aiPhase, aiError } = useChain();
-  const thinking = aiPhase === "requester";
+interface Props {
+  verdict: RequesterOutput | null;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+}
 
-  // Trigger the confidence number animation whenever the verdict updates.
+export function AIVerdict({ verdict, loading, error, onRetry }: Props) {
   const [pct, setPct] = useState(0);
   useEffect(() => {
-    if (!requesterVerdict) {
+    if (!verdict) {
       setPct(0);
       return;
     }
-    const target = Math.round(requesterVerdict.confidence * 100);
-    const t = setTimeout(() => setPct(target), 120);
+    const target = Math.round(verdict.confidence * 100);
+    const t = setTimeout(() => setPct(target), 80);
     return () => clearTimeout(t);
-  }, [requesterVerdict?.confidence, requesterVerdict]);
+  }, [verdict]);
 
-  if (thinking) {
+  if (loading) {
     return (
       <div className="rounded-3xl border border-white/[0.06] bg-[#141414] p-7 sm:p-8">
         <div className="flex items-center gap-3">
@@ -40,28 +43,53 @@ export function AIVerdict() {
             <span className="absolute inset-0 animate-ping rounded-full bg-violet/50" />
             <span className="relative inline-flex size-2.5 rounded-full bg-violet" />
           </span>
-          <p className="text-[14px] text-fg">
-            Requester Agent is thinking…
-          </p>
+          <p className="text-[14px] text-fg">Requester Agent is thinking…</p>
         </div>
         <p className="mt-3 text-[12px] text-fg-muted">
-          Local Ollama model is scoring the request against deposit history,
-          reputation, cross-group activity, reason plausibility, and emergency
-          verification.
+          Ollama is scoring the request against deposit history, reputation,
+          cross-group activity, reason plausibility, and emergency verification.
         </p>
       </div>
     );
   }
 
-  if (!requesterVerdict) {
+  if (error && !verdict) {
     return (
-      <div className="rounded-3xl border border-dashed border-border bg-[#141414] p-7 text-[13px] text-fg-muted">
-        No verdict yet.
+      <div className="rounded-3xl border border-rose/30 bg-rose/[0.04] p-7 sm:p-8">
+        <p className="text-[14px] text-fg">Requester Agent failed.</p>
+        <p
+          className="mt-2 break-words text-[12px] text-rose/80"
+          style={{
+            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+          }}
+        >
+          {error}
+        </p>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-5 inline-flex items-center justify-center rounded-full border border-border bg-white/[0.04] px-4 py-2 text-[12px] text-fg-muted transition-colors hover:border-fg-dim hover:text-fg"
+          >
+            Try again
+          </button>
+        )}
       </div>
     );
   }
 
-  const v = requesterVerdict;
+  if (!verdict) {
+    return (
+      <div className="rounded-3xl border border-dashed border-border bg-[#141414] p-7 sm:p-8">
+        <p className="text-[14px] text-fg-muted">
+          No verdict yet — the Requester Agent will run when the request is
+          submitted.
+        </p>
+      </div>
+    );
+  }
+
+  const v = verdict;
   const tone = routingTone(v.routing);
   const toneClass =
     tone === "emerald"
@@ -176,12 +204,6 @@ export function AIVerdict() {
           ))}
         </ul>
       </details>
-
-      {aiError && (
-        <p className="mt-5 text-[12px] text-rose">
-          AI error: {aiError}. Showing the last successful verdict instead.
-        </p>
-      )}
     </div>
   );
 }

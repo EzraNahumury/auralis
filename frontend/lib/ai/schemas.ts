@@ -5,7 +5,7 @@ export interface RequesterInput {
   memberName: string;
   amountPot: number;
   reason: string;
-  category: "scheduled" | "emergency" | "early";
+  category: "scheduled" | "emergency" | "other";
   memberReputation: number;
   memberTier: "Bronze" | "Silver" | "Gold" | "Platinum";
   depositConsistencyPct: number;

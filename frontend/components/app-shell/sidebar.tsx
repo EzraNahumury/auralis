@@ -6,8 +6,7 @@ import { cn } from "@/lib/cn";
 
 const nav = [
   { label: "Home", href: "/app" },
-  { label: "Group", href: "/app/groups/g_rt03" },
-  { label: "Send", href: "/app/groups/g_rt03/withdraw" },
+  { label: "Groups", href: "/app/groups" },
   { label: "Profile", href: "/app/profile" },
   { label: "Agent", href: "/app/agents" },
 ];

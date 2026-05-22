@@ -27,16 +27,23 @@ const DEFAULT_HOST = "http://localhost:11434";
 const DEFAULT_MODEL = "llama3.2";
 
 export function ollamaHost(): string {
-  return process.env.OLLAMA_HOST ?? DEFAULT_HOST;
+  // Trim trailing slash so we can always append "/api/chat" safely.
+  return (process.env.OLLAMA_HOST ?? DEFAULT_HOST).replace(/\/+$/, "");
 }
 
 export function ollamaModel(): string {
   return process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
 }
 
+export function ollamaKey(): string | null {
+  const k = process.env.OLLAMA_KEY ?? process.env.OLLAMA_API_KEY ?? "";
+  return k.trim() ? k.trim() : null;
+}
+
 export async function ollamaChat(req: OllamaChatRequest): Promise<OllamaChatResult> {
   const host = ollamaHost();
   const model = req.model ?? ollamaModel();
+  const apiKey = ollamaKey();
 
   const body = {
     model,
@@ -48,11 +55,17 @@ export async function ollamaChat(req: OllamaChatRequest): Promise<OllamaChatResu
     },
   };
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  // Ollama Cloud requires Bearer auth; local daemon ignores extra headers.
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
   let res: Response;
   try {
     res = await fetch(`${host}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
     });
   } catch (err) {
