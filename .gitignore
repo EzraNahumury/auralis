@@ -1,0 +1,8 @@
+# Auralis root .gitignore
+#
+# Note: deploy.local.env IS COMMITTED — it is the canonical record of our
+# admin-approved substrate-contracts-node ink! deployment (see README §14.9).
+# It contains no secrets (//Alice is the public Substrate dev account; the
+# contract addresses are deterministic from the WASM code hash).
+
+.DS_Store

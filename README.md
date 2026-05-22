@@ -1091,7 +1091,7 @@ End-to-end test against `substrate-contracts-node --dev` MUST pass:
 ## 14. Deployment Strategy & Companion Demo
 
 > **Audience:** anyone building, demoing, or judging this project.
-> **TL;DR:** Our 7 ink! 5.x contracts cannot deploy to current Portaldot binary (Contracts API v5, only supports ink! 3.x). For live on-chain demonstration we use native pallets via `companion/`. The full ink! architecture deploys as-is once Portaldot upgrades to Contracts API v9+.
+> **TL;DR:** Our 7 ink! 5.x contracts cannot deploy to the current Portaldot binary (Contracts API v5). Per **admin-approved guidance from Portaldot core team (2026-05-21)**, we deploy them to `substrate-contracts-node` (pallet-contracts v9+, same WASM accepts as-is on Portaldot post-upgrade) — see §14.9 for live addresses. For runtime-level Portaldot proof we also ship a native-pallet `companion/` demo with 5 transactions live on Portaldot dev (see §14.7).
 
 ### 14.1 The Contracts API v5 blocker (admin-confirmed)
 
@@ -1477,6 +1477,65 @@ cd companion
 npm install
 npx tsx src/check-mainnet.ts
 ```
+
+### 14.9 ⛓️ ink! contract deployment proof (admin-approved fallback path)
+
+On **2026-05-21** the Portaldot core team explicitly approved deploying ink! contracts to `substrate-contracts-node` as valid hackathon proof, on the condition that the limitation is documented. Quoting @LevelMax (Discord, pinned):
+
+> "Deploying on substrate-contracts-node is accepted as valid PoC for judging as long as you clearly explain the reason in your project documentation.
+>
+> What to include in your docs:
+>
+> *Contract was deployed on substrate-contracts-node (pallet-contracts v9+) due to a runtime limitation on the current Portaldot node binary (Contracts API v5, which rejects ink! 4.x/5.x). The contract compiles cleanly and would deploy as-is to Portaldot once the node binary is updated.*"
+
+We followed this guidance on **2026-05-22**. All 7 ink! 5.x contracts are now live on a local `substrate-contracts-node --dev` (pallet-contracts v9+, identical instruction set + WASM accept rules as a future-upgraded Portaldot binary).
+
+**Network:**
+- Binary: `substrate-contracts-node 0.42.0-f209befc88c`
+- RPC: `ws://127.0.0.1:9944`
+- Chain: `Development` (generic Substrate; same pallet-contracts as future Portaldot)
+- Deployer: `//Alice` (`5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`)
+- Token: UNIT, 12 decimals (placeholder; Portaldot equivalent is POT, 14 decimals)
+
+**Deployed contracts (6 of 7 — `ArisanGroup` is instantiated per group at runtime, not at infra-deploy time):**
+
+| # | Contract | Address | Code hash |
+|---|----------|---------|-----------|
+| 1 | `AgentRegistry` | `5E1ai4bYH3p5SrnAod5cjYoN3MF2ZDsop8g89CTG4j1gautZ` | `0x42ca94c3cc8c30ef7c51614812321a5903031cdc3a5e2ea6dc53c05c02777ce2` |
+| 2 | `GroupRegistry` | `5CU21zZQNiVGE97NyUxzjMFNwKwftK322Nw6uLc5Z3pVtz8w` | `0x2d3426a037300b0b6ee2aa00303696ba76a2fb01adedd8a2e398cc65cba4fa23` |
+| 3 | `BadgeNFT` | `5HUCxxCsYGFVwaTRyuN2GWDDZx7nqb579jFPmXmTAxoUz5cZ` | `0x60783169e51e0b68908c7493d245bc7bfd5b119ce05d937400be163bd048f61e` |
+| 4 | `ReputationRegistry` | `5HG8d5pWCyP2tcZ4wEB7qu24FZokC4g3z2iSHhKaKF8f77CK` | `0x7e633a92326bc45e83e7c10c33bb38d42b5f3a2b94a21f4fb5e3f66936149e63` |
+| 5 | `VotingEngine` | `5FdadzWxHybkfZwLdUXaC5R2iC3B6bUejcKMiixvyNP2PQTD` | `0x27190ad5daf8dc8ed7bf3cf63bce1eb433d3252c2a48fe9281d320cbeacc2e63` |
+| 6 | `Treasury` | `5HN9QMbrm5HujP78fY63ykLvt1EKXNSet7uqbfEo2qDr8aVo` | `0xcecbea1b7f790fd54da61c7d7373d34511b818e41fe45be7416305d36fbe3212` |
+
+**Wiring transactions (3, all `ExtrinsicSuccess`):**
+
+| Action | Outcome |
+|--------|---------|
+| `BadgeNFT.set_minter(ReputationRegistry)` | Mint authority transferred from deployer placeholder → `ReputationRegistry` |
+| `VotingEngine.add_whitelisted_prevalidator(Alice)` | Alice's account authorized as the Requester Agent identity for `submit_prevalidation` |
+| `ReputationRegistry.add_whitelisted_writer(VotingEngine)` | `VotingEngine` authorized to push reputation deltas after vote tallying |
+
+Full machine-readable record at [`deploy.local.env`](./deploy.local.env) (committed for submission evidence).
+
+**Verify any address yourself (local node must be running):**
+
+```bash
+# 1. Start the node:
+substrate-contracts-node --dev --tmp
+
+# 2. Query, e.g. AgentRegistry total_registered() (read-only, free):
+cd contracts/agent_registry
+cargo contract call \
+    --contract 5E1ai4bYH3p5SrnAod5cjYoN3MF2ZDsop8g89CTG4j1gautZ \
+    --message total_registered \
+    --suri //Alice --url ws://127.0.0.1:9944
+# → Result Success { data: 0 }
+```
+
+**Portaldot-equivalence statement** (required by admin guidance):
+
+> The 7 contracts in `contracts/` compile cleanly to ink! 5.0 WASM and were deployed to `substrate-contracts-node` (pallet-contracts v9+) due to a runtime limitation on the current Portaldot node binary (Contracts API v5, which rejects ink! 4.x/5.x). The same WASM bundles and `.contract` files in `contracts/*/target/ink/` would deploy as-is to Portaldot once that node binary is updated — the only change required is the `--url` flag pointing at the updated Portaldot endpoint.
 
 ---
 
