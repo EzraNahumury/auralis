@@ -1,183 +1,183 @@
 # 🎙️ Pitch Script — Auralis
 
-Naskah presentasi untuk demo Auralis. Bisa dibaca langsung saat demo (3-5 menit).
+Presentation script for the Auralis demo. Read aloud during the live demo (3-5 minutes total).
 
 ---
 
-## 🎯 Opening (30 detik)
+## 🎯 Opening (30 seconds)
 
-> "Halo, kami dari tim **Auralis** untuk Portaldot Mini Hackathon Season 1.
+> "Hi, we're team **Auralis** for the Portaldot Mini Hackathon Season 1.
 >
-> Pernah dengar **Arisan**? Tradisi Indonesia berusia ratusan tahun di mana sekelompok orang patungan rutin, dan tiap periode salah satu anggota dapat giliran ambil seluruh pot.
+> Have you heard of **Arisan**? It's an Indonesian tradition that's been around for hundreds of years — a group of people pool money regularly, and each period one member takes the entire pot in their turn.
 >
-> Masalahnya: arisan tradisional **rentan masalah** — bendahara kabur, pencatatan manual berantakan, sengketa siapa giliran berikutnya. Modern banking menyelesaikan ini tapi mengecualikan **180 juta orang Indonesia yang unbanked**.
+> The problem: traditional arisan is **vulnerable to issues** — the treasurer might disappear, manual record-keeping gets messy, disputes arise over whose turn is next. Modern banking solves this but excludes the **180 million unbanked Indonesians**.
 >
-> **Auralis menyelesaikan keduanya** — kami bawa arisan ke blockchain Portaldot, dengan AI agent yang validasi setiap penarikan dan multisig yang amankan pot. Tradisi yang berusia ratusan tahun, dibangun ulang untuk Web3."
+> **Auralis solves both** — we bring arisan onto the Portaldot blockchain, with AI agents that validate every withdrawal and a multisig that secures the pot. A centuries-old tradition, rebuilt for Web3."
 
 ---
 
-## 💡 Why Auralis? (30 detik)
+## 💡 Why Auralis? (30 seconds)
 
-> "Kenapa ini penting?
+> "Why does this matter?
 >
-> **Pertama**, ini bukan replikasi DeFi yang udah ada — ini **financial primitive baru** yang sesuai konteks lokal. Arisan = trust circle + commitment device + payout lottery, semua dalam satu mekanisme.
+> **First**, this isn't another DeFi clone — it's a **new financial primitive** rooted in local context. Arisan = trust circle + commitment device + payout lottery, all in one mechanism.
 >
-> **Kedua**, kami tidak mock AI di backend — kami pakai **real LLM (Ollama) sebagai dua agent yang berbeda**:
-> - **Requester Agent**: memproses pengajuan penarikan dengan konteks (deposit history, reputation, alasan)
-> - **Reviewer Agent**: kasih voting suggestion per member berdasarkan policy preference mereka
+> **Second**, we don't mock AI in the backend — we use a **real LLM (Ollama) as two distinct agents**:
+> - **Requester Agent**: processes withdrawal requests with full context (deposit history, reputation, reason)
+> - **Reviewer Agent**: gives voting suggestions per member based on their policy preferences
 >
-> **Ketiga**, semua governance jalan via **multisig on-chain** — bukan centralized API. Pot dikunci, payout butuh threshold tanda tangan, semua tertulis di chain."
+> **Third**, all governance runs through **on-chain multisig** — not a centralized API. The pot is locked, payouts require threshold signatures, everything is recorded on-chain."
 
 ---
 
-## 🏗️ Arsitektur Cepat (30 detik)
+## 🏗️ Quick Architecture (30 seconds)
 
-> "Stack kami:
+> "Our stack:
 >
-> - **7 smart contracts** ditulis di **ink! 5.x** — semua deployed di Portaldot dev chain via substrate-contracts-node
-> - **Frontend Next.js 16** dengan Polkadot.js untuk sign transactions
-> - **AI agents** pakai Ollama (gpt-oss:120b-cloud / llama3.2 lokal)
-> - **Multisig 2-of-3 / 3-of-5** untuk amankan pot withdrawal
+> - **7 smart contracts** written in **ink! 5.x** — all deployed on Portaldot dev chain via substrate-contracts-node
+> - **Next.js 16 frontend** with Polkadot.js for transaction signing
+> - **AI agents** powered by Ollama (gpt-oss:120b-cloud / local llama3.2)
+> - **Multisig 2-of-3 / 3-of-5** to secure pot withdrawals
 >
-> 7 contracts itu: `agent_registry`, `group_registry`, `badge_nft`, `reputation_registry`, `voting_engine`, `treasury`, dan `arisan_group`.
+> The 7 contracts are: `agent_registry`, `group_registry`, `badge_nft`, `reputation_registry`, `voting_engine`, `treasury`, and `arisan_group`.
 >
-> Semua address tersimpan di `deploy.local.env`. Cross-contract wiring otomatis via `set_minter`, `add_whitelisted_prevalidator`, `add_whitelisted_writer`."
+> All addresses are stored in `deploy.local.env`. Cross-contract wiring is automated through `set_minter`, `add_whitelisted_prevalidator`, and `add_whitelisted_writer`."
 
 ---
 
-## 🎬 Live Demo (60-90 detik)
+## 🎬 Live Demo (60-90 seconds)
 
-> "Oke, mari langsung demo. Skenarionya: **Alice butuh dana 200 POT untuk biaya sekolah anak**."
+> "Alright, let's jump into the demo. The scenario: **Alice needs 200 POT to cover her child's school fees**."
 
-### Step 1 — Sign In (5 detik)
+### Step 1 — Sign In (5 seconds)
 
-> "Saya login sebagai **Alice** pakai dev key. Di production ini wallet asli — Polkadot.js atau Talisman."
+> "I'm signing in as **Alice** with a dev key. In production this would be a real wallet — Polkadot.js or Talisman."
 
-### Step 2 — Group Setup (10 detik)
+### Step 2 — Group Setup (10 seconds)
 
-> "Buat group 'Arisan Kelas' dengan 3 member: Alice, Bob, Charlie. Multisig 2-of-3. Setiap orang setor 100 POT per round.
+> "Create a group called 'Arisan Kelas' with 3 members: Alice, Bob, Charlie. 2-of-3 multisig. Each person deposits 100 POT per round.
 >
-> Kalian lihat multisig address di sini — `5DjYJS...pRA7`. Ini deterministik dari combination members + threshold."
+> You can see the multisig address here — `5DjYJS...pRA7`. It's deterministically derived from the combination of members + threshold."
 
-### Step 3 — Deposits (15 detik)
+### Step 3 — Deposits (15 seconds)
 
-> "Sekarang round 1, semua orang setor. Alice setor 100 POT — ini **real on-chain `balances.transferKeepAlive`** ke multisig address. Switch ke Bob, setor. Switch ke Charlie, setor.
+> "Now it's round 1, everyone deposits. Alice deposits 100 POT — this is a **real on-chain `balances.transferKeepAlive`** to the multisig address. Switch to Bob, deposit. Switch to Charlie, deposit.
 >
-> Total pot sekarang **300 POT**. Lihat block number naik — itu transaksi asli, bukan simulasi."
+> The pot now holds **300 POT**. Notice the block number incrementing — these are real transactions, not simulations."
 
-### Step 4 — Request Withdrawal (10 detik)
+### Step 4 — Request Withdrawal (10 seconds)
 
-> "Alice butuh 200 POT, klik 'Request Withdrawal', kasih alasan: 'Anak saya butuh biaya sekolah mendadak', kategori Emergency.
+> "Alice needs 200 POT, clicks 'Request Withdrawal', provides the reason: 'My child needs urgent school fees', category Emergency.
 >
-> Pengajuan langsung masuk ke **Phase 1 — AI Pre-Validation**."
+> The request immediately enters **Phase 1 — AI Pre-Validation**."
 
-### Step 5 — AI Phase 1 (15 detik)
+### Step 5 — AI Phase 1 (15 seconds)
 
-> "Ini bukan mock. Ollama LLM jalan di backend dan analisa:
-> - **Deposit record perfect** — Alice tidak pernah telat setor
+> "This is not a mock. Ollama LLM runs in the backend and analyzes:
+> - **Perfect deposit record** — Alice has never been late
 > - **High reputation** — 887/1000, Platinum tier
-> - **Alasan emergency masuk akal**
-> - **Verdict: PASS dengan 90% confidence, FAST-TRACK**
+> - **Emergency reason is reasonable**
+> - **Verdict: PASS with 90% confidence, FAST-TRACK**
 >
-> Ini berarti langsung lanjut ke voting tanpa delay tambahan."
+> This means we proceed straight to voting with no additional delay."
 
-### Step 6 — AI Phase 2 + Member Vote (20 detik)
+### Step 6 — AI Phase 2 + Member Vote (20 seconds)
 
-> "**Reviewer Agent** kasih suggestion per member berdasarkan profile mereka:
+> "The **Reviewer Agent** gives suggestions per member based on their policy:
 > - **Bob** (Trust-Default): APPROVE — 'High confidence, no red flags'
-> - **Charlie** (Conservative): APPROVE — 'Reputation kuat, deposit konsisten'
-> - **Dave** kalau ada (Strict-Emergency): mungkin REJECT karena emergency unverified
+> - **Charlie** (Conservative): APPROVE — 'Strong reputation, consistent deposits'
+> - **Dave** if present (Strict-Emergency): might REJECT because emergency is unverified
 >
-> Sekarang **Alice klik 'Propose on chain'** — multisig signature pertama (1 of 2).
+> Now **Alice clicks 'Propose on chain'** — first multisig signature (1 of 2).
 >
-> Switch ke Bob → 'Approve & execute' — multisig threshold tercapai, **status: Completed**."
+> Switch to Bob → 'Approve & execute' — multisig threshold reached, **status: Completed**."
 
-### Step 7 — Phase 3 Claim (15 detik) — ⭐ HIGHLIGHT INI
+### Step 7 — Phase 3 Claim (15 seconds) — ⭐ KEY MOMENT
 
-> "Sekarang yang penting. Switch balik ke Alice.
+> "Now the important part. Switch back to Alice.
 >
-> Muncul section **Phase 3 — Claim funds**. Alice klik **'Claim 200 POT'**.
+> The **Phase 3 — Claim funds** section appears. Alice clicks **'Claim 200 POT'**.
 >
-> Lihat ini — **balance Alice naik +200 POT** (delta hijau). **Pot balance group turun jadi 100 POT** (dari 300). Phase 3 berubah jadi 'Funds claimed' hijau dengan **real txHash**.
+> Watch this — **Alice's balance increases by +200 POT** (green delta). **The group pot balance drops to 100 POT** (from 300). Phase 3 becomes 'Funds claimed' green with a **real txHash**.
 >
-> Ini bukan animasi — ini transfer on-chain asli yang bisa di-verify di block explorer."
+> This isn't animation — it's a real on-chain transfer verifiable on the block explorer."
 
-### Step 8 — Phase 4 History (5 detik)
+### Step 8 — Phase 4 History (5 seconds)
 
-> "Semua tx tersimpan di Phase 4 — propose, approve, execute, claim. Setiap dengan block number dan tx hash. Audit trail lengkap."
+> "Every tx is recorded in Phase 4 — propose, approve, execute, claim. Each with block number and tx hash. Full audit trail."
 
 ---
 
-## 🎁 Closing (30 detik)
+## 🎁 Closing (30 seconds)
 
-> "Jadi rangkumannya, **Auralis adalah**:
+> "So in summary, **Auralis is**:
 >
-> 1. **Trust-minimized arisan** — tidak butuh bendahara, pot dikunci di multisig
-> 2. **AI-augmented governance** — dua agent berbeda yang assist tanpa override decision manusia
-> 3. **Native ke Portaldot** — 7 ink! contracts, gas token POT, full on-chain
-> 4. **Inclusive** — designed untuk konteks Indonesia, bukan copy-paste DeFi Barat
+> 1. **Trust-minimized arisan** — no treasurer needed, the pot is locked in multisig
+> 2. **AI-augmented governance** — two distinct agents that assist without overriding human decisions
+> 3. **Native to Portaldot** — 7 ink! contracts, POT as gas token, fully on-chain
+> 4. **Inclusive by design** — built for Indonesian context, not a copy-paste of Western DeFi
 >
-> **Yang sudah live:**
-> - Web app di `auralis-portaldot.vercel.app`
-> - Substrate node di Railway
-> - 7 contracts ter-deploy
+> **What's already live:**
+> - Web app at `auralis-portaldot.vercel.app`
+> - Substrate node on Railway
+> - 7 contracts deployed
 > - GitHub: `github.com/EzraNahumury/auralis`
 >
-> Demo selesai, makasih sudah nonton. Pertanyaan?"
+> That's the demo, thanks for watching. Questions?"
 
 ---
 
-## 🎤 Q&A Anticipated Questions
+## 🎤 Anticipated Q&A
 
-### "Kenapa nggak pakai mainnet Portaldot?"
-> "Portaldot mainnet belum live. Kami pakai `substrate-contracts-node --dev` sebagai PoC karena Portaldot dev nodes pakai Contracts API v5 yang reject ink! 4.x/5.x — itu blocker dari sisi infrastructure mereka."
+### "Why not use Portaldot mainnet?"
+> "Portaldot mainnet isn't live yet. We use `substrate-contracts-node --dev` as our PoC because Portaldot dev nodes ship with Contracts API v5, which rejects ink! 4.x/5.x — that's an infrastructure blocker on their side."
 
-### "Multisig itu real on-chain?"
-> "Di Portaldot mainnet (saat pallet-multisig tersedia) — iya, real. Di local `substrate-contracts-node` pallet-multisig tidak include — jadi kami simulate dengan fallback yang return real callHash. Tapi deposit dan claim **tetap real on-chain transfer** via pallet-balances."
+### "Is the multisig actually on-chain?"
+> "On Portaldot mainnet (once pallet-multisig is available) — yes, fully real. On the local `substrate-contracts-node`, pallet-multisig isn't included — so we simulate with a fallback that returns the real callHash. But deposits and claims **remain real on-chain transfers** via pallet-balances."
 
-### "AI-nya pakai apa? Stuck kalau Ollama mati?"
-> "Pakai Ollama — bisa cloud (`gpt-oss:120b-cloud`) atau lokal (`llama3.2`). Kalau Ollama mati, ada **fallback ke seeded mock verdict** supaya UI flow tetap jalan untuk demo. Tapi production akan butuh AI hidup."
+### "What's the AI? Does it break if Ollama goes down?"
+> "We use Ollama — either cloud (`gpt-oss:120b-cloud`) or local (`llama3.2`). If Ollama is unreachable, there's a **fallback to seeded mock verdicts** so the UI flow keeps working for demos. But production needs the AI live."
 
-### "Berapa member maksimum di satu group?"
-> "Multisig threshold di Substrate efektif maksimal 100 signatories. Untuk arisan praktis, sweet spot 5-15 member per group. Kalau mau lebih, bisa nested groups (group of groups)."
+### "What's the maximum number of members per group?"
+> "Substrate's multisig threshold effectively caps at 100 signatories. For practical arisan, the sweet spot is 5-15 members per group. For larger structures, you can do nested groups (a group of groups)."
 
-### "Token POT itu apa?"
-> "Native gas token Portaldot — sama seperti DOT di Polkadot. Di dev chain dia mock, di mainnet (saat live) dia real value."
+### "What is the POT token?"
+> "It's Portaldot's native gas token — same role as DOT on Polkadot. On dev chain it's a mock; on mainnet (when live) it carries real value."
 
-### "Apa beda Auralis dengan DAO biasa?"
-> "DAO biasa fokus ke voting & treasury management. Auralis spesifik untuk **rotating payout pattern arisan** — ada round-based deposits, ada giliran yang fair, ada commitment device. Plus AI yang bantu trust scoring antar member."
+### "How is Auralis different from a regular DAO?"
+> "Regular DAOs focus on voting & treasury management. Auralis is specifically built for the **rotating payout pattern of arisan** — round-based deposits, fair turn-taking, commitment device baked in. Plus AI that helps trust-scoring between members."
 
 ---
 
-## 📊 Numbers Yang Bisa Disebut
+## 📊 Numbers You Can Cite
 
 - **7 ink! smart contracts** deployed
 - **2 AI agents** (Requester + Reviewer) running real LLM
-- **180 juta unbanked Indonesia** sebagai potential market
+- **180 million unbanked Indonesians** as potential market
 - **2-of-3 multisig** default threshold
-- **5 real on-chain transactions** sebagai proof (lihat `companion/tx-proof.json`)
-- **60-90 detik** demo flow end-to-end
+- **5 real on-chain transactions** as proof (see `companion/tx-proof.json`)
+- **60-90 seconds** end-to-end demo flow
 
 ---
 
 ## 🎨 Tone & Style Tips
 
-- **Bahasa campuran OK** — "real on-chain", "transfer", "multisig" pakai istilah teknis aslinya
-- **Tunjuk layar saat demo** — jangan baca slide, audience ikuti screen
-- **Pause setiap selesai action** — biar block number naik kelihatan
-- **Highlight angka konkret** — "300 POT jadi 100 POT", "+200 POT delta hijau"
-- **Jangan defend limitasi** — explain dengan confident: "ini dev chain, mainnet akan beda"
+- **Mix English with technical terms** as-is — "real on-chain", "transfer", "multisig" stay in their native form
+- **Point at the screen during demo** — don't read from slides, let the audience follow your cursor
+- **Pause after each action** — let the block number bump be visible
+- **Highlight concrete numbers** — "300 POT becomes 100 POT", "+200 POT green delta"
+- **Don't defend limitations** — explain with confidence: "this is the dev chain, mainnet will differ"
 
 ---
 
-## 🔑 Inti Yang Wajib Disampaikan
+## 🔑 Core Points You Must Convey
 
-Kalau cuma punya **1 menit**, sampaikan ini saja:
+If you only have **1 minute**, deliver these:
 
 1. **Auralis = Arisan on Portaldot** (financial inclusion + cultural relevance)
-2. **AI-augmented, bukan AI-controlled** — humans decide, AI advises
-3. **Real on-chain** — bukan database disamarkan
+2. **AI-augmented, not AI-controlled** — humans decide, AI advises
+3. **Real on-chain** — not a disguised database
 4. **7 contracts + Next.js + Ollama** = production-ready architecture
-5. **Demo bisa diulang dalam <90 detik** end-to-end
+5. **Demo runs end-to-end in under 90 seconds**
 
-Selesai. Powerful pitch tidak butuh banyak kata — butuh **demo yang jalan mulus**.
+Done. A powerful pitch doesn't need many words — it needs **a demo that runs smoothly**.
