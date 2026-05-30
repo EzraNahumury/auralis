@@ -25,6 +25,7 @@ Reimagining Indonesia's centuries-old rotating savings tradition (*Arisan*) as a
 
 | Layer | URL / Address |
 |-------|---------------|
+| **🎬 Demo Video** (YouTube) | <https://youtu.be/6FUBzRV3Trs> |
 | **Web App** (Next.js 16) | <https://auralis-portaldot.vercel.app/> |
 | **Substrate Node** (Railway) | `wss://auralis-production-0d6a.up.railway.app` |
 | **GitHub Repository** | <https://github.com/EzraNahumury/auralis> |
@@ -551,6 +552,8 @@ See [`node/README.md`](./node/README.md) — three-minute deploy walkthrough inc
 
 ## 13. Demo Scenario
 
+📺 **Watch the full demo:** <https://youtu.be/6FUBzRV3Trs>
+
 The submitted demo video walks through five scenes (~7 min):
 
 | Scene | Time | Event |
@@ -616,6 +619,6 @@ Core smart contracts and frontend are released under the **MIT License** — see
 
 Built for **Portaldot Mini Hackathon Online · Season 1** · May 2026
 
-[🌐 Live App](https://auralis-portaldot.vercel.app/) · [⛓️ Chain Node](https://auralis-production-0d6a.up.railway.app) · [📦 GitHub](https://github.com/EzraNahumury/auralis)
+[🎬 Demo Video](https://youtu.be/6FUBzRV3Trs) · [🌐 Live App](https://auralis-portaldot.vercel.app/) · [⛓️ Chain Node](https://auralis-production-0d6a.up.railway.app) · [📦 GitHub](https://github.com/EzraNahumury/auralis)
 
 </div>
