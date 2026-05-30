@@ -12,30 +12,14 @@ FROM prosopo/substrate-contracts-node:v0.41.18dp
 
 USER root
 
-# Persist chain state across restarts. Railway must mount a volume here.
-RUN mkdir -p /data && chown -R 1000:1000 /data
-
-USER 1000
+# Railway mounts the volume as root-owned AFTER the image is built. Any
+# chown done during build is overridden once the mount is applied, so we
+# fix permissions at container start via the entrypoint instead.
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Default port if Railway does not inject one (local docker run).
 ENV PORT=9944
 EXPOSE 9944
 
-# Single-port RPC + WS bind. --rpc-external opens beyond 127.0.0.1, required
-# by Railway's edge proxy. --rpc-cors=all unblocks the Vercel frontend.
-#
-# --rpc-methods=unsafe enables author_insertKey and similar dev-mode RPCs.
-# Acceptable only for the hackathon dev chain — DO NOT keep this flag for a
-# production deploy. See node/README.md "Security warning" for details.
-#
-# --no-prometheus / --no-telemetry trim noisy network egress on Railway.
-CMD ["sh", "-c", "substrate-contracts-node \
-  --dev \
-  --name=auralis-node \
-  --base-path=/data \
-  --rpc-external \
-  --rpc-cors=all \
-  --rpc-methods=unsafe \
-  --rpc-port=${PORT} \
-  --no-prometheus \
-  --no-telemetry"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
