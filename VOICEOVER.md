@@ -54,7 +54,9 @@ The fourth menu is Agent. This is where you configure your personal AI reviewer.
 
 Now that you understand the four menus, let's jump into the live demo. Our scenario, Alice needs two hundred POT to cover her child's urgent school fees.
 
-First, I sign in as Alice using a dev key. In production this would be a real wallet like Polkadot dot js or Talisman.
+When you first land on the application, you are presented with four dev user choices, each with a pre-seeded reputation profile. Alice has a Platinum reputation, Bob has Gold, Charlie also Gold, and Dave has Silver. These tiers reflect their past behavior on chain and directly affect their vote weight inside any group.
+
+For this demo, I sign in as Alice using her dev key. In production this would be a real wallet like Polkadot dot js or Talisman.
 
 Next, I create a group called Arisan with three members. Alice, Bob, and Charlie. The threshold is two of three, and each member deposits one hundred POT per round.
 
@@ -128,7 +130,9 @@ Menu keempat adalah Agent. Di sinilah kalian mengatur AI reviewer pribadi. Kalia
 
 Setelah kalian memahami keempat menu tersebut, mari kita masuk ke demo langsungnya. Skenarionya, Alice membutuhkan dua ratus POT untuk biaya sekolah anaknya yang mendesak.
 
-Pertama, saya sign in sebagai Alice menggunakan dev key. Di production, ini akan menjadi wallet asli seperti Polkadot js atau Talisman.
+Di awal, ketika kalian membuka aplikasi, kalian akan mendapatkan empat pilihan user yang sudah disiapkan, masing-masing dengan profil reputasi berbeda. Alice memiliki reputasi Platinum, Bob reputasi Gold, Charlie juga Gold, dan Dave dengan reputasi Silver. Tier ini mencerminkan rekam jejak mereka di on-chain, dan secara langsung mempengaruhi bobot suara mereka di dalam setiap group.
+
+Untuk demo ini, saya sign in sebagai Alice menggunakan dev key miliknya. Di production, ini akan menjadi wallet asli seperti Polkadot js atau Talisman.
 
 Selanjutnya, saya membuat group bernama Arisan dengan tiga anggota. Alice, Bob, dan Charlie. Threshold dua dari tiga, dan setiap anggota menyetor seratus POT per putaran.
 
