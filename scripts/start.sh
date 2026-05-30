@@ -66,15 +66,10 @@ wait_port() {
 }
 
 # ── 1. Substrate node ───────────────────────────────────────────────────
-echo "→ Starting substrate-contracts-node (manual-seal mode)..."
-# Manual-seal with create-empty + 1s tick → reliable block production on
-# every Substrate version. Avoids the v0.42 instant-seal stall.
+echo "→ Starting substrate-contracts-node..."
 nohup substrate-contracts-node \
   --dev \
   --tmp \
-  --manual-seal \
-  --create-empty \
-  --finalize-delay-sec 1 \
   >"$NODE_LOG" 2>&1 &
 node_pid=$!
 echo "$node_pid" > "$NODE_PID_FILE"

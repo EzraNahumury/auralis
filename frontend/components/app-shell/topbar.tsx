@@ -19,6 +19,7 @@ export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [flash, setFlash] = useState(false);
+  const [lastDelta, setLastDelta] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const prevBalance = useRef<number | null>(null);
 
@@ -30,15 +31,32 @@ export function Topbar() {
     return () => clearInterval(t);
   }, [address, loadBalance]);
 
-  // Briefly flash when balance changes to draw attention to it.
+  // Reset baseline when switching accounts.
+  useEffect(() => {
+    prevBalance.current = null;
+    setLastDelta(null);
+  }, [address]);
+
+  // Show per-transaction delta and flash when balance changes.
   useEffect(() => {
     if (balance === undefined) return;
-    if (prevBalance.current !== null && prevBalance.current !== balance) {
-      setFlash(true);
-      const t = setTimeout(() => setFlash(false), 1400);
-      return () => clearTimeout(t);
+    if (prevBalance.current === null) {
+      prevBalance.current = balance;
+      return;
     }
-    prevBalance.current = balance;
+    if (prevBalance.current !== balance) {
+      const d = balance - prevBalance.current;
+      prevBalance.current = balance;
+      if (Math.abs(d) > 0.0001) {
+        setLastDelta(d);
+        setFlash(true);
+        const t = setTimeout(() => {
+          setFlash(false);
+          setLastDelta(null);
+        }, 5000);
+        return () => clearTimeout(t);
+      }
+    }
   }, [balance]);
 
   useEffect(() => {
@@ -66,11 +84,8 @@ export function Topbar() {
     }
   };
 
-  const balanceChanged = balance !== undefined && balance !== prevBalance.current;
-  const delta =
-    prevBalance.current !== null && balance !== undefined
-      ? balance - prevBalance.current
-      : 0;
+  const balanceChanged = lastDelta !== null;
+  const delta = lastDelta ?? 0;
 
   return (
     <header className="border-b border-border bg-bg/95 backdrop-blur-md">

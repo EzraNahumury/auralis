@@ -6,3 +6,6 @@
 # contract addresses are deterministic from the WASM code hash).
 
 .DS_Store
+
+# Local dev process logs and PIDs
+.logs/

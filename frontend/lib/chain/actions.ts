@@ -124,3 +124,15 @@ export interface ExecuteInput {
 export async function submitExecute(input: ExecuteInput): Promise<ChainTxResult> {
   return postJSON("/api/chain/withdraw/execute", input);
 }
+
+export interface ClaimInput {
+  groupId: string;
+  requestId: string;
+  recipientMember: MemberName;
+  amountPot: number;
+  members: MemberName[];  // all group members — used to split the payout
+}
+
+export async function submitClaim(input: ClaimInput): Promise<ChainTxResult> {
+  return postJSON("/api/chain/withdraw/claim", input);
+}

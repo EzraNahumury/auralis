@@ -21,6 +21,7 @@ import {
   submitPropose,
   submitApprove,
   submitExecute,
+  submitClaim,
 } from "@/lib/chain/actions";
 import { knownAddress } from "@/lib/session/derive";
 import { AIVerdict } from "@/components/app/ai-verdict";
@@ -43,6 +44,8 @@ export default function RequestDetail({
   const [txs, setTxs] = useState<TxLogEntry[]>([]);
   const [pendingMember, setPendingMember] = useState<MemberName | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [claimPending, setClaimPending] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   useEffect(() => {
     setGroup(findGroup(id));
@@ -294,6 +297,43 @@ export default function RequestDetail({
     }
   };
 
+  const handleClaim = async () => {
+    if (!group || !request) return;
+    setClaimPending(true);
+    setClaimError(null);
+    try {
+      const r = await submitClaim({
+        groupId: group.id,
+        requestId: request.id,
+        recipientMember: request.recipient,
+        amountPot: request.amountPot,
+        members: group.members,
+      });
+      updateRequest(request.id, {
+        claimTxHash: r.txHash,
+        claimBlockNumber: r.blockNumber,
+        claimedAt: Date.now(),
+      });
+      appendTx({
+        id: newTxId(),
+        groupId: group.id,
+        requestId: request.id,
+        kind: "withdraw_claim",
+        signer: request.recipient,
+        amountPot: request.amountPot,
+        txHash: r.txHash,
+        blockHash: r.blockHash,
+        blockNumber: r.blockNumber,
+        createdAt: Date.now(),
+      });
+      await loadBalance(knownAddress(request.recipient));
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setClaimPending(false);
+    }
+  };
+
   const isCompleted = request.status === "completed";
   const isRejected = request.status === "rejected";
   const statusBadge = (() => {
@@ -385,10 +425,11 @@ export default function RequestDetail({
             const isCurrent = user === m;
             const isRequester = m === request.requester;
             const isPending = pendingMember === m;
+            const memberVotedOnChain = !!(vote && vote.txHash);
 
             const showApproveBtn =
               isCurrent &&
-              !userVotedOnChain &&
+              !memberVotedOnChain &&
               !isCompleted &&
               !isRejected;
 
@@ -515,10 +556,51 @@ export default function RequestDetail({
         )}
       </section>
 
+      {isCompleted && user === request.recipient && (
+        <section className="fade-in">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.16em] text-fg-dim">
+            Phase 3 — Claim funds
+          </p>
+          {request.claimedAt ? (
+            <div className="rounded-2xl border border-emerald/30 bg-emerald/[0.04] px-5 py-4">
+              <p className="text-[13px] font-medium text-emerald-soft">
+                Funds claimed
+              </p>
+              <p className="mt-1 text-[12px] text-fg-muted">
+                {request.amountPot} POT transferred to your wallet on block #{request.claimBlockNumber}.{" "}
+                <code style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}>
+                  {shortHash(request.claimTxHash!, 10, 8)}
+                </code>
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber/30 bg-amber/[0.04] px-5 py-5">
+              <p className="text-[14px] font-medium text-fg">
+                Your withdrawal has been approved
+              </p>
+              <p className="mt-1.5 text-[13px] text-fg-muted">
+                {request.amountPot} POT is ready for you to claim. This will execute a real on-chain transfer.
+              </p>
+              {claimError && (
+                <p className="mt-2 text-[12px] text-rose">{claimError}</p>
+              )}
+              <button
+                type="button"
+                disabled={claimPending}
+                onClick={handleClaim}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald px-6 py-2 text-[13px] font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {claimPending ? "Processing…" : `Claim ${request.amountPot} POT`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
       {txs.length > 0 && (
         <section className="fade-in">
           <p className="mb-3 text-[11px] uppercase tracking-[0.16em] text-fg-dim">
-            Phase 3 — On-chain history
+            Phase 4 — On-chain history
           </p>
           <ul className="divide-y divide-border border-y border-border">
             {txs.map((t) => {
@@ -563,20 +645,14 @@ export default function RequestDetail({
         </section>
       )}
 
-      {isCompleted && request.executionTxHash && (
+      {isCompleted && request.claimedAt && (
         <section className="fade-in rounded-2xl border border-emerald/30 bg-emerald/[0.04] px-5 py-4">
           <p className="text-[13px] text-emerald-soft">
-            ✓ {request.amountPot} POT released to {request.recipient}. Final
-            tx{" "}
-            <code
-              style={{
-                fontFamily:
-                  "var(--font-geist-mono), ui-monospace, monospace",
-              }}
-            >
-              {shortHash(request.executionTxHash, 10, 8)}
+            ✓ {request.amountPot} POT successfully claimed by {request.recipient}.{" "}
+            <code style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace" }}>
+              {shortHash(request.claimTxHash!, 10, 8)}
             </code>{" "}
-            in block #{request.executionBlockNumber}.
+            in block #{request.claimBlockNumber}.
           </p>
         </section>
       )}
@@ -588,6 +664,7 @@ function kindLabel(k: string): string {
   if (k === "withdraw_propose") return "proposed the withdrawal";
   if (k === "withdraw_approve") return "approved on chain";
   if (k === "withdraw_execute") return "executed the payout";
+  if (k === "withdraw_claim") return "claimed the funds";
   if (k === "deposit") return "deposited";
   return k;
 }

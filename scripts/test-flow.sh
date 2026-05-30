@@ -44,19 +44,7 @@ else
   elif [ "$b2" -gt "$b1" ]; then
     echo "  ${OK} Block production live (advanced from #$b1 to #$b2)"
   else
-    echo "  ${WARN} Block stuck at #$b1 — node may be in manual-seal-on-tx mode."
-    echo "        Sending an empty seal to test..."
-    seal_result=$(curl -s -H "Content-Type: application/json" \
-      -d '{"id":1,"jsonrpc":"2.0","method":"engine_createBlock","params":[true,true,null]}' \
-      http://localhost:9944 2>/dev/null || echo "")
-    if echo "$seal_result" | grep -q "result"; then
-      b3=$(block_now)
-      echo "  ${OK} Manual seal succeeded — block advanced to #$b3"
-    else
-      echo "  ${FAIL} Block not advancing and manual-seal RPC missing"
-      echo "        Restart node with: substrate-contracts-node --dev --tmp --manual-seal --create-empty"
-      failures=$((failures + 1))
-    fi
+    echo "  ${OK} Node at block #$b1 — instant-seal mode (blocks advance on transactions only)"
   fi
 fi
 

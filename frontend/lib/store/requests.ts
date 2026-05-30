@@ -43,6 +43,9 @@ export interface WithdrawRequest {
   proposalBlockNumber?: number;
   executionTxHash?: string;
   executionBlockNumber?: number;
+  claimTxHash?: string;
+  claimBlockNumber?: number;
+  claimedAt?: number;
   createdAt: number;
   completedAt?: number;
 }

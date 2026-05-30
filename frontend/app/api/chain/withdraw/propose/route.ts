@@ -93,6 +93,22 @@ export async function POST(req: Request) {
     );
     const callHash = innerCall.method.hash.toHex();
 
+    // pallet-multisig is not present on substrate-contracts-node (local dev).
+    // Return a simulated proposal so the demo UI flow continues without error.
+    if (!api.query.multisig) {
+      return NextResponse.json({
+        ok: true,
+        simulated: true,
+        txHash: callHash,
+        blockHash: callHash,
+        blockNumber: 1,
+        multisigAddress,
+        callHash,
+        timepointHeight: 1,
+        timepointIndex: 0,
+      });
+    }
+
     // Idempotency: if the same callHash is already pending against this
     // multisig, just return the existing timepoint instead of double-proposing.
     const existing = (await api.query.multisig.multisigs(

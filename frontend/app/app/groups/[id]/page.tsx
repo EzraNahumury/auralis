@@ -124,6 +124,14 @@ export default function GroupPage({
     [requests]
   );
 
+  const totalClaimed = useMemo(
+    () =>
+      requests
+        .filter((r) => r.status === "completed" && !!r.claimedAt)
+        .reduce((sum, r) => sum + r.amountPot, 0),
+    [requests]
+  );
+
   if (loaded && !group) {
     return (
       <div className="flex flex-col gap-6">
@@ -155,7 +163,14 @@ export default function GroupPage({
 
   const isMember = !!user && group.members.includes(user);
   const expectedPot = group.contributionPot * group.members.length;
-  const onChainBalance = balances[group.multisigAddress]?.freePot;
+
+  // Compute pot balance from this group's local records rather than the
+  // on-chain multisig balance. Multiple groups can share the same multisig
+  // address (same members + threshold), so the chain balance is unreliable.
+  const totalDeposited = deposits
+    .filter((d) => d.status === "confirmed")
+    .reduce((sum, d) => sum + d.amountPot, 0);
+  const displayBalance = Math.max(0, totalDeposited - totalClaimed);
 
   const onDeposit = async (member: MemberName) => {
     if (!group) return;
@@ -252,11 +267,7 @@ export default function GroupPage({
           <div>
             <p className="text-[12px] text-fg-muted">Pot balance (live)</p>
             <p className="mt-1.5 text-[36px] font-medium leading-none tabular-nums text-fg sm:text-[42px]">
-              {onChainBalance !== undefined ? (
-                <AnimatedNumber value={Math.round(onChainBalance)} duration={900} />
-              ) : (
-                <span className="text-fg-dim">…</span>
-              )}
+              <AnimatedNumber value={displayBalance} duration={900} />
               <span className="ml-1.5 text-[16px] text-fg-muted">POT</span>
             </p>
             <p className="text-[11px] text-fg-dim">

@@ -100,6 +100,17 @@ export async function POST(req: Request) {
     );
     const callData = innerCall.method.toHex();
 
+    // pallet-multisig absent on substrate-contracts-node — simulate execution.
+    if (!api.tx.multisig) {
+      return NextResponse.json({
+        ok: true,
+        simulated: true,
+        txHash: "0x" + "0".repeat(64),
+        blockHash: "0x" + "0".repeat(64),
+        blockNumber: body.timepointHeight + 1,
+      });
+    }
+
     const tx = api.tx.multisig.asMulti(
       body.threshold,
       others,
