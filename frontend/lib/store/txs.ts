@@ -6,7 +6,8 @@ export type TxKind =
   | "deposit"
   | "withdraw_propose"
   | "withdraw_approve"
-  | "withdraw_execute";
+  | "withdraw_execute"
+  | "withdraw_claim";
 
 export interface TxLogEntry {
   id: string;

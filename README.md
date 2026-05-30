@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./docs/logo.png" alt="Auralis logo" width="120" />
+
 # Auralis
 
 **AI-governed Arisan, settled on Portaldot.**

@@ -27,12 +27,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Auralis — AI-governed Arisan on Portaldot",
+  title: "Auralis",
   description:
     "Auralis turns Indonesia's rotating savings tradition into a transparent, AI-governed onchain coordination protocol. Built natively on Portaldot with ink! smart contracts and POT gas.",
   metadataBase: new URL("https://auralis.dev"),
   openGraph: {
-    title: "Auralis — AI-governed Arisan on Portaldot",
+    title: "Auralis",
     description:
       "Multi-agent reasoning evaluates every withdrawal request; the chain enforces the verdict.",
     type: "website",
