@@ -44,6 +44,18 @@ All seven contracts are live on the Railway-hosted dev chain (`substrate-contrac
 
 ---
 
+## ⚠️ Disclaimer
+
+Auralis is an **experimental hackathon prototype** built for the Portaldot Mini Hackathon Online · Season 1. It is **not production-ready**, has not undergone third-party security audit, and **must not be used to custody real user funds**. Smart contracts and AI agents may contain bugs, vulnerabilities, or unexpected behaviour.
+
+- **Crypto risk.** Blockchain, smart contracts, and crypto assets are inherently risky and experimental. Vulnerabilities, exploits, loss of funds, or system failures may occur.
+- **No financial advice.** Nothing in this project, its UI, its documentation, or its smart contracts constitutes investment, legal, tax, or financial advice. The **POT** used on the dev chain has **no monetary value** and is for demonstration only.
+- **Third-party services.** Auralis relies on third-party infrastructure (Vercel, Railway, Ollama, Anthropic, IPFS). The authors are not responsible for their security, availability, or performance.
+- **Limitation of liability.** To the maximum extent permitted by law, the authors and contributors disclaim all liability for direct, indirect, incidental, or consequential damages, including loss of data, profits, or business interruption arising from the use of this software.
+- **Use at your own risk.** By interacting with the demo, you accept full responsibility for any outcome of that interaction.
+
+---
+
 ## Table of Contents
 
 1. [Overview](#1-overview)
