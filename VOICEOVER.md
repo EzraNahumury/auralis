@@ -2,9 +2,9 @@
 
 Ready-to-paste scripts for ElevenLabs (or any TTS). Plain prose, natural pauses, no markdown.
 
-Both versions cover: intro, the four main menu features (Home, Groups, Profile, Agent), live demo with the group called Arisan having three members (Alice, Bob, Charlie), and closing.
+Both versions cover: intro, how Auralis works, what users can do, security, the tech stack, the four main menu features (Home, Groups, Profile, Agent), live demo with the group called Arisan having three members (Alice, Bob, Charlie), FAQ mention, and closing.
 
-Duration target: about 3 to 4 minutes per version.
+Duration target: about 4 to 5 minutes per version.
 
 ---
 
@@ -23,6 +23,24 @@ But traditional arisan has real problems. The treasurer can disappear with the m
 This is where Auralis comes in. We bring arisan onto the Portaldot blockchain, paired with AI agents that validate every withdrawal request, and a multisig wallet that secures the shared pot. A tradition hundreds of years old, rebuilt for the Web Three era.
 
 Why does this matter? First, this is not another DeFi clone. It is a brand-new financial primitive, rooted in local culture. Second, we do not fake our AI. We run a real large language model as two distinct agents. The Requester Agent processes withdrawal requests with full context. The Reviewer Agent provides voting suggestions for each member based on their personal policy preference. Third, all governance flows through on-chain multisig, not a centralized API. The pot is locked, payouts require threshold signatures, and every action is recorded permanently on chain.
+
+Now let me explain how Auralis works under the hood.
+
+The first pillar is Multi-Agent Reasoning. Auralis routes every withdrawal request through a Requester Agent for pre-validation. Then, multiple Reviewer Agents take over, one per member, each reasoning independently against their own policy preset before casting a weighted vote on chain. This way, no single AI dictates the outcome. Every member has their own AI helper, and the group decides collectively.
+
+The second pillar is Portable Reputation. Each member carries a single score from zero to one thousand that follows them across every Auralis group on Portaldot. Soulbound badges attest to behavior. Tiers from Bronze up to Platinum multiply your voting weight. A defaulter does not get a clean slate by simply joining a new group. Trust here is portable, and so is misconduct.
+
+Now let me show you what you can actually do with Auralis.
+
+First, you can stay on track. Every deposit lands on chain and is scored as it arrives. Consistency compounds over time. After twelve on-time rounds, the reputation system automatically rewards you with a Consistent Payer badge.
+
+Second, you can build reputation. A single score from zero to one thousand follows you across every Auralis group on Portaldot. As you climb tiers, your vote weight scales with you. The longer you behave well, the more weight your voice carries.
+
+Third, you can mint soulbound badges. Good behavior mints non-transferable NFTs into your wallet. Consistent Payer, Trusted Member, Cross-Group Veteran, Dispute-Free. These badges are portable across the entire Auralis ecosystem.
+
+Of course, none of this matters if the funds are not safe. So let me talk about security and integrations. We prioritize the safety of community funds through on-chain enforcement. Auralis core contracts are open source on GitHub. Every AI verdict and every reviewer vote is auditable. And a third-party security audit is planned ahead of the Portaldot mainnet release.
+
+Our tech stack is simple but powerful. Seven smart contracts written in ink five point x, all deployed on the Portaldot dev chain. A Next dot js sixteen frontend with Polkadot dot js for transaction signing. AI agents powered by Ollama. And multisig two of three to secure every pot withdrawal.
 
 Okay, let's take a tour of the website itself. When you enter the application, you will find four main menus. Home, Groups, Profile, and Agent. Let me explain what each one does.
 
@@ -54,7 +72,9 @@ Look at this. Alice's wallet balance jumps by exactly two hundred POT. The group
 
 And finally, Phase Four shows the complete on-chain history. Propose, approve, execute, and claim. Every step recorded with block numbers and transaction hashes. A full audit trail.
 
-So to summarize, Auralis is a trust-minimized arisan that needs no treasurer. It is AI-augmented governance where two distinct agents assist humans without overriding their decisions. It is native to Portaldot, built with seven ink contracts using POT as the gas token, fully on chain. And it is inclusive by design, built for the Indonesian context rather than a copy paste of Western DeFi.
+If anything is still unclear, we also provide a dedicated FAQ section on our landing page. It covers common questions about how trust scoring works, what happens when a member defaults, how multisig thresholds are chosen, and what makes Auralis different from a regular DAO.
+
+So to summarize, Auralis is a trust-minimized arisan that needs no treasurer. It is AI-augmented governance where multiple agents assist humans without overriding their decisions. It is native to Portaldot, built with seven ink contracts using POT as the gas token, fully on chain. And it is inclusive by design, built for the Indonesian context rather than a copy paste of Western DeFi.
 
 Our web app is live at auralis dash portaldot dot vercel dot app. The substrate node runs on Railway. All seven contracts are deployed. Our code is open source on GitHub.
 
@@ -77,6 +97,24 @@ Tetapi arisan tradisional punya masalah nyata. Bendahara bisa kabur membawa uang
 Di sinilah Auralis hadir. Kami memindahkan arisan ke blockchain Portaldot, dipadukan dengan AI agent yang memvalidasi setiap pengajuan penarikan, dan dompet multisig yang mengamankan pot bersama. Sebuah tradisi berusia ratusan tahun, dibangun kembali untuk era Web Tiga.
 
 Mengapa ini penting? Pertama, ini bukan sekadar tiruan DeFi. Ini adalah financial primitive baru yang berakar pada budaya lokal. Kedua, kami tidak memalsukan AI kami. Kami menjalankan large language model nyata sebagai dua agent yang berbeda. Requester Agent memproses pengajuan penarikan dengan konteks lengkap. Reviewer Agent memberikan saran voting untuk setiap anggota berdasarkan policy pribadi mereka. Ketiga, seluruh governance berjalan melalui on-chain multisig, bukan API terpusat. Pot terkunci, payout memerlukan threshold tanda tangan, dan setiap tindakan tercatat secara permanen di chain.
+
+Sekarang izinkan saya menjelaskan bagaimana Auralis bekerja di balik layar.
+
+Pilar pertama adalah Multi-Agent Reasoning. Auralis mengarahkan setiap pengajuan penarikan melalui Requester Agent untuk pre-validation. Setelah itu, beberapa Reviewer Agent bekerja, satu agent untuk setiap anggota, masing-masing bernalar secara independen sesuai policy preset mereka, sebelum memberikan vote berbobot di on-chain. Dengan cara ini, tidak ada satu AI yang menentukan hasil. Setiap anggota memiliki AI helper sendiri, dan keputusan akhir tetap di tangan kelompok secara kolektif.
+
+Pilar kedua adalah Portable Reputation. Setiap anggota memiliki satu skor dari nol sampai seribu yang mengikuti mereka di seluruh group Auralis di Portaldot. Soulbound badge menjadi bukti perilaku. Tier dari Bronze hingga Platinum mengalikan vote weight. Anggota yang gagal bayar tidak bisa mendapat lembaran baru hanya dengan pindah ke group lain. Kepercayaan di sini portabel, dan begitu juga rekam jejak pelanggaran.
+
+Sekarang mari kita bahas apa saja yang bisa kalian lakukan dengan Auralis.
+
+Pertama, kalian bisa stay on track, atau tetap konsisten. Setiap deposit tercatat di on-chain dan dinilai saat masuk. Konsistensi terakumulasi seiring waktu. Setelah dua belas putaran tepat waktu, sistem reputation otomatis memberi kalian badge Consistent Payer.
+
+Kedua, kalian bisa membangun reputasi. Satu skor dari nol sampai seribu mengikuti kalian di seluruh group Auralis di Portaldot. Seiring naiknya tier, vote weight kalian ikut bertambah. Semakin lama kalian berperilaku baik, semakin besar bobot suara kalian.
+
+Ketiga, kalian bisa mint soulbound badge. Perilaku baik akan menerbitkan NFT non-transferable ke dompet kalian. Consistent Payer, Trusted Member, Cross-Group Veteran, dan Dispute-Free. Semua badge ini portabel di seluruh ekosistem Auralis.
+
+Tentu saja, semua ini tidak ada artinya jika dana tidak aman. Maka izinkan saya membahas security dan integrations. Kami memprioritaskan keamanan dana komunitas melalui penegakan on-chain. Core contract Auralis open source di GitHub. Setiap verdict AI dan setiap vote reviewer bisa diaudit. Dan audit keamanan oleh pihak ketiga sudah direncanakan menjelang rilis Portaldot mainnet.
+
+Stack teknologi kami sederhana namun kuat. Tujuh smart contract ditulis dengan ink lima titik x, semua sudah ter-deploy di Portaldot dev chain. Frontend Next js enam belas dengan Polkadot js untuk signing transaksi. AI agent yang ditenagai Ollama. Dan multisig dua dari tiga untuk mengamankan setiap pot withdrawal.
 
 Oke, mari kita berkeliling sebentar di websitenya. Ketika kalian masuk ke aplikasi ini, kalian akan menemukan empat menu utama. Home, Groups, Profile, dan juga Agent. Izinkan saya menjelaskan fungsi masing-masing.
 
@@ -108,7 +146,9 @@ Perhatikan ini. Saldo dompet Alice langsung bertambah tepat dua ratus POT. Pot b
 
 Dan terakhir, Phase Empat menampilkan riwayat on-chain lengkap. Propose, approve, execute, dan claim. Setiap langkah tercatat dengan nomor block dan transaction hash. Jejak audit yang utuh.
 
-Jadi kesimpulannya, Auralis adalah arisan yang trust minimized tanpa perlu bendahara. Auralis adalah AI augmented governance di mana dua agent berbeda membantu manusia tanpa mengambil alih keputusan mereka. Auralis dibangun secara native untuk Portaldot, dengan tujuh ink contract menggunakan POT sebagai gas token, sepenuhnya on chain. Dan Auralis inklusif by design, dirancang untuk konteks Indonesia, bukan jiplakan DeFi Barat.
+Jika ada hal yang masih membingungkan, kami juga menyediakan section FAQ khusus di landing page kami. FAQ ini menjawab pertanyaan-pertanyaan umum, seperti bagaimana trust score bekerja, apa yang terjadi ketika seorang anggota gagal bayar, bagaimana threshold multisig ditentukan, dan apa yang membuat Auralis berbeda dari DAO biasa.
+
+Jadi kesimpulannya, Auralis adalah arisan yang trust minimized tanpa perlu bendahara. Auralis adalah AI augmented governance di mana beberapa agent membantu manusia tanpa mengambil alih keputusan mereka. Auralis dibangun secara native untuk Portaldot, dengan tujuh ink contract menggunakan POT sebagai gas token, sepenuhnya on chain. Dan Auralis inklusif by design, dirancang untuk konteks Indonesia, bukan jiplakan DeFi Barat.
 
 Web app kami sudah live di auralis dash portaldot dot vercel dot app. Substrate node berjalan di Railway. Tujuh smart contract sudah terdeploy. Kode kami terbuka di GitHub.
 
@@ -133,10 +173,30 @@ Itulah Auralis. Terima kasih sudah menyimak. Kami siap menerima pertanyaan dari 
    - Tambahkan jeda dengan menyisipkan tiga titik di tempat penting
 
 4. **Target durasi:**
-   - English: sekitar 3 sampai 3 setengah menit
-   - Indonesia: sekitar 3 setengah sampai 4 menit
+   - English: sekitar 4 sampai 5 menit
+   - Indonesia: sekitar 4 setengah sampai 5 setengah menit
 
 5. **Sinkronisasi dengan rekaman demo:**
    - Rekam screen demo terlebih dahulu, sekitar 60 sampai 90 detik
-   - Generate voiceover versi lengkap, sekitar 3 hingga 4 menit
+   - Generate voiceover versi lengkap, sekitar 4 sampai 5 menit
    - Edit di CapCut atau Premiere, potong bagian intro dan outro yang tidak perlu screen demo, atau pakai split screen
+
+---
+
+## 🗺️ Outline Struktur Script (Referensi Cepat)
+
+Urutan section di kedua versi:
+
+1. **Opening** — sapaan + tim
+2. **Hook** — apa itu Arisan
+3. **Problem** — masalah arisan tradisional + 180M unbanked
+4. **Solution** — Auralis intro
+5. **Why It Matters** — 3 poin (not a clone, real AI, on-chain governance)
+6. **How Auralis Works** — Multi-Agent Reasoning + Portable Reputation
+7. **What You Can Do** — Stay on track + Build reputation + Mint badges
+8. **Security & Integrations** — open source, auditable, third-party audit
+9. **Tech Stack** — 7 ink contracts, Next.js, Polkadot.js, Ollama, multisig
+10. **4 Menu Walkthrough** — Home, Groups, Profile, Agent
+11. **Live Demo** — sign in → group Arisan → deposit → request → AI → voting → claim
+12. **FAQ Mention** — pointer ke FAQ section di landing page
+13. **Summary + Closing** — 4-point recap + URLs + thank you
